@@ -2,8 +2,11 @@
 # Project configuration
 # =========================
 APP_NAME = app
-SRC_DIR  = src
+SRC_DIR  = sudoku
 SRC      = $(wildcard $(SRC_DIR)/*.c $(SRC_DIR)/*.cpp)
+
+BIN_DIR  = bin
+TARGET   = $(BIN_DIR)/$(APP_NAME)
 
 # =========================
 # Detect compiler
@@ -19,19 +22,24 @@ endif
 # =========================
 # Flags
 # =========================
-CFLAGS = -Wall -Wextra -O2 $(STD)
+CFLAGS   = -Wall -Wextra -O2 $(STD)
 INCLUDES = -I/usr/local/include
-LIBS = -L/usr/local/lib -lraylib -lGL -lm -lpthread -ldl -lrt
+LIBS     = -L/usr/local/lib -lraylib -lGL -lm -lpthread -ldl -lrt
 
 # =========================
 # Targets
 # =========================
-all: $(APP_NAME)
+all: $(TARGET)
 
-$(APP_NAME):
-	$(CC) $(SRC) -o $(APP_NAME) $(CFLAGS) $(INCLUDES) $(LIBS)
+# Create bin directory if it does not exist
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+
+# Build binary into bin/
+$(TARGET): $(SRC) | $(BIN_DIR)
+	$(CC) $(SRC) -o $(TARGET) $(CFLAGS) $(INCLUDES) $(LIBS)
 
 clean:
-	rm -f $(APP_NAME)
+	rm -f $(TARGET)
 
 .PHONY: all clean
