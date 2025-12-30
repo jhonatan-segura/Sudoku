@@ -9,6 +9,7 @@
 #define WIDTH 1200
 #define HEIGHT 700
 #define PADDING 40
+#define HUD_GAP 20
 #define TEXT_PADDING 18
 #define LINE_THICKNESS 3.0
 
@@ -119,7 +120,7 @@ int main(void)
       BOARD_END_FULL + PADDING,
       WIDTH - PADDING};
 
-  int button_size = (HUD_SIZE.y - HUD_SIZE.x) / 3;
+  int button_size = (HUD_SIZE.y - HUD_SIZE.x) / 3 - HUD_GAP;
   NUMPAD_BUTTON_SIZE = (Vector2){button_size, button_size};
 
   BOARD_END = BOARD_END_FULL - PADDING;
@@ -221,39 +222,55 @@ void drawBoard()
       int x_coord = x1 + HALF_TILE_SIZE - 5;
       int y_coord = y1 + TEXT_PADDING;
       const char *cellText = TextFormat("%i", board[i][j].value);
-      DrawText(cellText, x_coord, y_coord, 28, BLACK);
+      Color textColor = board[i][j].fixed ? BLACK : GRAY;
+      DrawText(cellText, x_coord, y_coord, 28, textColor);
     }
   }
 }
 
 void drawHUD()
 {
-  // printf("tile %d\n", TILE_SIZE);
+  // Draw numpad
   int numpad_count = 1;
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < NUM_PAD_TILES; i++)
   {
-    for (int j = 0; j < 3; j++)
+    for (int j = 0; j < NUM_PAD_TILES; j++)
     {
-      int x1 = j * NUMPAD_BUTTON_SIZE.x + HUD_SIZE.x;
-      int y1 = i * NUMPAD_BUTTON_SIZE.x + 280;
+      // Coordinates to draw numpad buttons and store their positions to detect clicks.
+      int x1 = j * (NUMPAD_BUTTON_SIZE.x + HUD_GAP) + HUD_SIZE.x;
+      int y1 = i * (NUMPAD_BUTTON_SIZE.x + HUD_GAP) + 280;
+      int x2 = x1 + NUMPAD_BUTTON_SIZE.x;
+      int y2 = y1 + NUMPAD_BUTTON_SIZE.x;
 
-      int x2 = (j + 1) * NUMPAD_BUTTON_SIZE.x + HUD_SIZE.x;
-      int y2 = (i + 1) * NUMPAD_BUTTON_SIZE.x + 280;
+      num_pad[i][j].top_left = (Vector2){x1, y1};
+      num_pad[i][j].bottom_right = (Vector2){x2, y2};
+      num_pad[i][j].value = numpad_count;
+
       Rectangle rect = {
           .x = x1,
           .y = y1,
           .width = NUMPAD_BUTTON_SIZE.x,
           .height = NUMPAD_BUTTON_SIZE.y};
-      num_pad[i][j].top_left = (Vector2){x1, y1};
-      num_pad[i][j].bottom_right = (Vector2){x2, y2};
-      num_pad[i][j].value = numpad_count;
       DrawRectangleLinesEx(rect, 2.0, BLACK);
+
       const char *cellText = TextFormat("%i", numpad_count++);
-      int x_coord = x1 + HALF_NUM_TILE_SIZE - 5;
-      int y_coord = y1 + HALF_NUM_TILE_SIZE;
-      DrawText(cellText, x_coord, y_coord, 28, BLACK);
+      int num_x = x1 + HALF_NUM_TILE_SIZE - 5;
+      int num_y = y1 + HALF_NUM_TILE_SIZE - 14;
+      DrawText(cellText, num_x, num_y, 28, BLACK);
     }
   }
+
+  // Draw undo/redo buttons
+  int undo_x = HUD_SIZE.x;
+  int undo_y = PADDING;
+
+  Rectangle rect = {
+      .x = undo_x,
+      .y = undo_y,
+      .width = NUMPAD_BUTTON_SIZE.x,
+      .height = NUMPAD_BUTTON_SIZE.y};
+  DrawRectangleLinesEx(rect, 2.0, BLACK);
+  DrawText("<", undo_x + 10, undo_y + 10, 28, BLACK);
 }
 
 void drawClock()
@@ -319,14 +336,22 @@ void mousePressed()
       for (int j = 0; j < TILES; j++)
       {
         board[i][j].selected = false;
-        if (board[i][j].fixed != true &&
+        bool withinTile =
             mousePos.x > board[i][j].top_left.x && mousePos.x < board[i][j].bottom_right.x &&
-            mousePos.y > board[i][j].top_left.y && mousePos.y < board[i][j].bottom_right.y)
+            mousePos.y > board[i][j].top_left.y && mousePos.y < board[i][j].bottom_right.y;
+        if (board[i][j].fixed != true &&
+            withinTile)
         {
           printf("Tile clicked at row %d, col %d\n", i, j);
           board[i][j].selected = true;
           currentTile.x = i;
           currentTile.y = j;
+        }
+        else if (board[i][j].fixed == true &&
+                 withinTile)
+        {
+          currentTile.x = -1;
+          currentTile.y = -1;
         }
       }
     }
