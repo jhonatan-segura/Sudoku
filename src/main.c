@@ -1,0 +1,697 @@
+#include "raylib.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include "time.h"
+#include "string.h"
+
+#define TILES 9
+#define NUM_PAD_TILES 3
+#define WIDTH 1200
+#define HEIGHT 700
+#define PADDING 40
+#define TEXT_PADDING 18
+#define LINE_THICKNESS 3.0
+
+// difficulty
+#define EASY 40
+#define MEDIUM 50
+#define HARD 60
+
+typedef struct
+{
+  int value;
+  int tempValue;
+  int attempts[TILES];
+  bool hidden;
+  bool fixed;
+  bool selected;
+  Vector2 top_left;
+  Vector2 bottom_right;
+} tile;
+
+typedef struct
+{
+  int newValue;
+  int oldValue;
+  bool newHidden;
+  bool oldHidden;
+  bool newSelected;
+  bool oldSelected;
+  Vector2 position;
+} action;
+
+typedef struct
+{
+  int value;
+  bool selected;
+  Vector2 top_left;
+  Vector2 bottom_right;
+} num_tile;
+
+typedef struct
+{
+  int x;
+  int y;
+  int tempValue;
+  int attempts[TILES];
+} position;
+
+typedef struct
+{
+  int top;
+  int capacity;
+  action *array;
+} Stack;
+
+position currentTile;
+
+tile board[TILES][TILES];
+Stack *actions;
+num_tile num_pad[NUM_PAD_TILES][NUM_PAD_TILES];
+float BOARD_SIZE;
+int BOARD_END_FULL;
+Vector2 HUD_SIZE;
+Vector2 NUMPAD_BUTTON_SIZE;
+
+int BOARD_END;
+float TILE_SIZE;
+float HALF_TILE_SIZE;
+float HALF_NUM_TILE_SIZE;
+
+float prevTime = 0.0f;
+float now = 0.0f;
+int minutes = 0;
+int seconds = 0;
+
+// static void UpdateGame(void); // Update game (one frame)
+// static void DrawGame(void);   // Draw game (one frame)
+// static void UnloadGame(void); // Unload game
+void initGame();
+void initTime();
+bool isValidCol(position *currentPos);
+bool isValidRow(position *currentPos);
+bool notAttemptedYet(position *currentPos);
+bool fillCell(position *currentPos);
+
+void drawBoard(void);
+void drawHUD(void);
+void drawClock(void);
+void mousePressed();
+int randValue(int min, int max);
+void resetAttempts(position *currentPos);
+bool isRandomValueValid(position *currentPos);
+void printBoard();
+void initBoard();
+void goBack(position *currentPos);
+bool goForth(position *currentPos);
+
+Stack *createStack(unsigned capacity);
+void addAction(Stack *stack, action item);
+
+int main(void)
+{
+  const int screenWidth = WIDTH;
+  const int screenHeight = HEIGHT;
+  BOARD_SIZE = 0.6f;
+
+  BOARD_END_FULL = WIDTH * BOARD_SIZE;
+  HUD_SIZE = (Vector2){
+      BOARD_END_FULL + PADDING,
+      WIDTH - PADDING};
+
+  int button_size = (HUD_SIZE.y - HUD_SIZE.x) / 3;
+  NUMPAD_BUTTON_SIZE = (Vector2){button_size, button_size};
+
+  BOARD_END = BOARD_END_FULL - PADDING;
+
+  TILE_SIZE = (BOARD_END - PADDING) / (float)TILES;
+  HALF_TILE_SIZE = TILE_SIZE / 2.0f;
+  HALF_NUM_TILE_SIZE = NUMPAD_BUTTON_SIZE.x / 2.0f;
+
+  currentTile.x = -1;
+  currentTile.y = -1;
+
+  actions = createStack(5);
+  if (!actions)
+  {
+    printf("Failed to create stack.\n");
+    return 1;
+  }
+
+  InitWindow(screenWidth, screenHeight, "Sudoku");
+
+  SetTargetFPS(60);
+
+  initGame();
+  // Main game loop
+  while (!WindowShouldClose())
+  {
+    // Update
+
+    // Draw
+    BeginDrawing();
+
+    ClearBackground(RAYWHITE);
+    // Input
+    mousePressed();
+
+    drawBoard();
+    drawHUD();
+    drawClock();
+
+    EndDrawing();
+  }
+
+  // De-Initialization
+  //--------------------------------------------------------------------------------------
+  CloseWindow(); // Close window and OpenGL context
+
+  return 0;
+}
+
+void drawBoard()
+{
+  // printf("boardsize %d\n", BOARD_SIZE);
+  // printf("boardsize/9 %d\n", BOARD_SIZE / 9);
+  // printf("tile %d\n", TILE_SIZE);
+  for (int i = 0; i < TILES + 1; i++)
+  {
+    int coord = i * TILE_SIZE + PADDING;
+    Vector2 start_hor = (Vector2){PADDING, coord};
+    Vector2 end_hor = (Vector2){BOARD_END, coord};
+    DrawLineV(start_hor, end_hor, BLACK);
+
+    Vector2 start_ver = (Vector2){coord, PADDING};
+    Vector2 end_ver = (Vector2){coord, BOARD_END};
+    DrawLineV(start_ver, end_ver, BLACK);
+
+    if (i % 3 == 0)
+    {
+      DrawLineEx(start_hor, end_hor, LINE_THICKNESS, BLACK);
+      DrawLineEx(start_ver, end_ver, LINE_THICKNESS, BLACK);
+    }
+  }
+
+  for (int i = 0; i < TILES; i++)
+  {
+    for (int j = 0; j < TILES; j++)
+    {
+      int x1 = j * TILE_SIZE + PADDING;
+      int y1 = i * TILE_SIZE + PADDING;
+      int x2 = (j + 1) * TILE_SIZE + PADDING;
+      int y2 = (i + 1) * TILE_SIZE + PADDING;
+      board[i][j].top_left = (Vector2){x1, y1};
+      board[i][j].bottom_right = (Vector2){x2, y2};
+
+      if (board[i][j].selected)
+      {
+        Rectangle rect = {
+            .x = x1,
+            .y = y1,
+            .width = TILE_SIZE,
+            .height = TILE_SIZE};
+        DrawRectangleLinesEx(rect, 3.0, BLUE);
+      }
+
+      if (board[i][j].hidden)
+      {
+        continue;
+      }
+
+      int x_coord = x1 + HALF_TILE_SIZE - 5;
+      int y_coord = y1 + TEXT_PADDING;
+      const char *cellText = TextFormat("%i", board[i][j].value);
+      DrawText(cellText, x_coord, y_coord, 28, BLACK);
+    }
+  }
+}
+
+void drawHUD()
+{
+  // printf("tile %d\n", TILE_SIZE);
+  int numpad_count = 1;
+  for (int i = 0; i < 3; i++)
+  {
+    for (int j = 0; j < 3; j++)
+    {
+      int x1 = j * NUMPAD_BUTTON_SIZE.x + HUD_SIZE.x;
+      int y1 = i * NUMPAD_BUTTON_SIZE.x + 280;
+
+      int x2 = (j + 1) * NUMPAD_BUTTON_SIZE.x + HUD_SIZE.x;
+      int y2 = (i + 1) * NUMPAD_BUTTON_SIZE.x + 280;
+      Rectangle rect = {
+          .x = x1,
+          .y = y1,
+          .width = NUMPAD_BUTTON_SIZE.x,
+          .height = NUMPAD_BUTTON_SIZE.y};
+      num_pad[i][j].top_left = (Vector2){x1, y1};
+      num_pad[i][j].bottom_right = (Vector2){x2, y2};
+      num_pad[i][j].value = numpad_count;
+      DrawRectangleLinesEx(rect, 2.0, BLACK);
+      const char *cellText = TextFormat("%i", numpad_count++);
+      int x_coord = x1 + HALF_NUM_TILE_SIZE - 5;
+      int y_coord = y1 + HALF_NUM_TILE_SIZE;
+      DrawText(cellText, x_coord, y_coord, 28, BLACK);
+    }
+  }
+}
+
+void drawClock()
+{
+  now = GetTime();
+  if (now - prevTime >= 1.0f)
+  {
+    prevTime = now;
+    seconds++;
+  }
+  if (seconds == 60)
+  {
+    minutes++;
+    seconds = 0.0;
+  }
+
+  const char *time = TextFormat("%02d:%02d", minutes, seconds);
+  // printf("Time: %02d\n", minutes);
+  DrawText(time, PADDING, 10, 28, BLACK);
+}
+
+void mousePressed()
+{
+  if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  {
+    Vector2 mousePos = GetMousePosition();
+    printf("Mouse clicked at %d, %d\n", GetMouseX(), GetMouseY());
+
+    for (int i = 0; i < NUM_PAD_TILES; i++)
+    {
+      for (int j = 0; j < NUM_PAD_TILES; j++)
+      {
+        if (mousePos.x > num_pad[i][j].top_left.x && mousePos.x < num_pad[i][j].bottom_right.x &&
+            mousePos.y > num_pad[i][j].top_left.y && mousePos.y < num_pad[i][j].bottom_right.y)
+        {
+          if (currentTile.x != -1 && currentTile.y != -1)
+          {
+            printf("numpad clicked at row %d, col %d, value %d\n", currentTile.x, currentTile.y, num_pad[i][j].value);
+            addAction(actions, (action){
+                                   .newValue = num_pad[i][j].value,
+                                   .oldValue = board[currentTile.x][currentTile.y].value,
+                                   .newHidden = false,
+                                   .oldHidden = board[currentTile.x][currentTile.y].hidden,
+                                   .newSelected = true,
+                                   .oldSelected = board[currentTile.x][currentTile.y].selected,
+                                   .position = (Vector2){currentTile.x, currentTile.y}});
+            board[currentTile.x][currentTile.y].value = num_pad[i][j].value;
+            board[currentTile.x][currentTile.y].hidden = false;
+          }
+        }
+      }
+    }
+
+    if (currentTile.x != -1 && currentTile.y != -1 &&
+        (mousePos.x > BOARD_END || mousePos.x < PADDING ||
+         mousePos.y > BOARD_END || mousePos.y < PADDING))
+    {
+      return;
+    }
+
+    for (int i = 0; i < TILES; i++)
+    {
+      for (int j = 0; j < TILES; j++)
+      {
+        board[i][j].selected = false;
+        if (board[i][j].fixed != true &&
+            mousePos.x > board[i][j].top_left.x && mousePos.x < board[i][j].bottom_right.x &&
+            mousePos.y > board[i][j].top_left.y && mousePos.y < board[i][j].bottom_right.y)
+        {
+          printf("Tile clicked at row %d, col %d\n", i, j);
+          board[i][j].selected = true;
+          currentTile.x = i;
+          currentTile.y = j;
+        }
+      }
+    }
+  }
+}
+
+void initTime()
+{
+  srand(time(NULL));
+}
+
+int randValue(int min, int max)
+{
+  int range = max - min + 1;
+
+  return (rand() % range) + min;
+}
+
+bool isValidRow(position *currentPos)
+{
+  for (int j = 0; j < TILES; j++)
+  {
+    if (board[currentPos->y][j].value == currentPos->tempValue)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool isValidCol(position *currentPos)
+{
+  for (int i = 0; i < TILES; i++)
+  {
+    if (board[i][currentPos->x].value == currentPos->tempValue)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool isValidSector(position *currentPos)
+{
+  int lowV = (currentPos->y / 3) * 3;
+  int highV = lowV + 2;
+  int lowH = (currentPos->x / 3) * 3;
+  int highH = lowH + 2;
+  for (int y = lowV; y <= highV; y++)
+  {
+    for (int x = lowH; x <= highH; x++)
+    {
+      if (board[y][x].value == currentPos->tempValue)
+      {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool isAllowedCell(position *currentPos)
+{
+  // printf("value %d  ", currentPos.tempValue);
+  // printf("row %d  ", isValidRow());
+  // printf("col %d  ", isValidCol());
+  // printf("sector %d ", isValidSector());
+  // printf("notAttemptedYet %d\n", notAttemptedYet());
+  return isValidRow(currentPos) && isValidCol(currentPos) && isValidSector(currentPos) && notAttemptedYet(currentPos);
+}
+
+void goBack(position *currentPos)
+{
+  if (currentPos->x == 0)
+  {
+    currentPos->y--;
+    currentPos->x = TILES - 1;
+  }
+  else
+  {
+    currentPos->x--;
+  }
+}
+
+bool goForth(position *currentPos)
+{
+  if (currentPos->x == (TILES - 1) && currentPos->y == (TILES - 1))
+  {
+    return true;
+  }
+  if (currentPos->x != (TILES - 1))
+  {
+    currentPos->x++;
+  }
+  else
+  {
+    currentPos->x = 0;
+    currentPos->y++;
+  }
+  return false;
+}
+
+void setAttempt(position *currentPos)
+{
+  for (int x = 0; x < TILES; x++)
+  {
+    if (board[currentPos->y][currentPos->x].attempts[x] == currentPos->tempValue)
+    {
+      break;
+    }
+
+    if (board[currentPos->y][currentPos->x].attempts[x] == 0)
+    {
+      board[currentPos->y][currentPos->x].attempts[x] = currentPos->tempValue;
+      break;
+    }
+  }
+}
+
+void setAttemptCurrentPos(position *currentPos)
+{
+  for (int x = 0; x < TILES; x++)
+  {
+    if (currentPos->attempts[x] == currentPos->tempValue)
+    {
+      break;
+    }
+
+    if (currentPos->attempts[x] == 0)
+    {
+      currentPos->attempts[x] = currentPos->tempValue;
+      break;
+    }
+  }
+}
+
+bool notAttemptedYet(position *currentPos)
+{
+  for (int x = 0; x < TILES; x++)
+  {
+    if (board[currentPos->y][currentPos->x].attempts[x] == currentPos->tempValue)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
+void printAttemptsCurrentPos(position *currentPos)
+{
+  printf("CurrentAttempts:\n");
+  for (int x = 0; x < TILES; x++)
+  {
+    printf("v: %d  ", currentPos->attempts[x]);
+  }
+  printf("\n");
+}
+
+bool areAllOptionsAttemptedCurrentPos(position *currentPos)
+{
+  // todas las posibilidades han sido intentadas
+  if (currentPos->attempts[TILES - 1] != 0)
+  {
+    return true;
+  }
+  return false;
+}
+
+void resetAttempts(position *currentPos)
+{
+  for (int x = 0; x < TILES; x++)
+  {
+    board[currentPos->y][currentPos->x].attempts[x] = 0;
+  }
+}
+
+void resetAttemptsCurrentPos(position *currentPos)
+{
+  memset(currentPos->attempts, 0, sizeof(currentPos->attempts));
+}
+
+bool isRandomValueValid(position *currentPos)
+{
+  // resetAttemptsCurrentPos(currentPos);
+  do
+  {
+    if (areAllOptionsAttemptedCurrentPos(currentPos))
+    {
+      return false;
+    }
+    currentPos->tempValue = randValue(1, 9);
+    setAttemptCurrentPos(currentPos);
+  } while (!isAllowedCell(currentPos));
+  return true;
+}
+
+void printBoard()
+{
+  for (int x = 0; x < TILES; x++)
+  {
+    if (x % 3 == 0 && x != 0)
+    {
+      printf("- - - - - - - - - - -\n");
+    }
+    for (int y = 0; y < TILES; y++)
+    {
+      if (y % 3 == 0 && y != 0)
+      {
+        printf("| ");
+      }
+      if (board[x][y].value == 0)
+      {
+        printf(". ");
+        continue;
+      }
+      printf("%d ", board[x][y].value);
+    }
+    printf("\n");
+  }
+  printf("\n");
+}
+
+bool fillCell(position *currentPos)
+{
+  bool isValid = isRandomValueValid(currentPos);
+
+  if (isValid)
+  {
+    setAttempt(currentPos);
+    board[currentPos->y][currentPos->x].value = currentPos->tempValue;
+    return true;
+  }
+  return false;
+}
+
+void solver()
+{
+  bool completed = false;
+  position currentPos;
+  currentPos.x = 0;
+  currentPos.y = 0;
+  currentPos.tempValue = 0;
+  while (!completed)
+  {
+    resetAttemptsCurrentPos(&currentPos);
+    bool filledCell = fillCell(&currentPos);
+    if (filledCell)
+    {
+      completed = goForth(&currentPos);
+    }
+    else
+    {
+      // reset
+      resetAttempts(&currentPos);
+      board[currentPos.y][currentPos.x].value = 0;
+      goBack(&currentPos);
+    }
+  }
+}
+
+void initBoard()
+{
+  for (int i = 0; i < TILES; i++)
+  {
+    for (int j = 0; j < TILES; j++)
+    {
+      board[i][j].value = 0;
+      board[i][j].hidden = false;
+      board[i][j].fixed = true;
+      board[i][j].selected = false;
+    }
+  }
+}
+
+void hideTiles(int numTiles)
+{
+  int x, y;
+  do
+  {
+    x = randValue(0, 8);
+    y = randValue(0, 8);
+    if (board[y][x].hidden == false)
+    {
+      --numTiles;
+    }
+    board[y][x].hidden = true;
+    board[y][x].fixed = false;
+  } while (numTiles > 0);
+}
+
+Stack *createStack(unsigned capacity)
+{
+  Stack *stack = (Stack *)malloc(sizeof(Stack));
+  if (!stack)
+  {
+    return NULL;
+  }
+  stack->capacity = capacity;
+  stack->top = -1;
+
+  stack->array = (action *)malloc(stack->capacity * sizeof(action));
+  if (!stack->array)
+  {
+    free(stack);
+    return NULL;
+  }
+  return stack;
+}
+
+int isFull(Stack *stack)
+{
+  return stack->top == stack->capacity - 1;
+}
+
+int isEmpty(Stack *stack)
+{
+  return stack->top == -1;
+}
+
+void addAction(Stack *stack, action item)
+{
+  if (isFull(stack))
+  {
+    printf("Stack Overflow\n");
+    return;
+  }
+  int index = ++stack->top;
+  printf("%d pushed to stack at %d\n", item.oldValue, index);
+  stack->array[index] = item;
+}
+
+action *pop(Stack *stack)
+{
+  if (isEmpty(stack))
+  {
+    printf("Stack Underflow\n");
+    return NULL;
+  }
+  return &stack->array[stack->top--];
+}
+
+action *peek(Stack *stack)
+{
+  if (isEmpty(stack))
+  {
+    printf("Stack is empty\n");
+    return NULL;
+  }
+  return &stack->array[stack->top];
+}
+
+void freeStack(Stack *stack)
+{
+  if (stack)
+  {
+    free(stack->array);
+    free(stack);
+  }
+}
+
+void initGame()
+{
+  initTime();
+  initBoard();
+  solver();
+  hideTiles(EASY);
+  printBoard();
+}
