@@ -1,4 +1,5 @@
 #include "raylib.h"
+// #include "raygui.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "time.h"
@@ -9,6 +10,7 @@
 #define WIDTH 1200
 #define HEIGHT 700
 #define PADDING 40
+#define HUD_GAP 20
 #define TEXT_PADDING 18
 #define LINE_THICKNESS 3.0
 
@@ -24,7 +26,6 @@ typedef struct
   int attempts[TILES];
   bool hidden;
   bool fixed;
-  bool selected;
   Vector2 top_left;
   Vector2 bottom_right;
 } tile;
@@ -35,10 +36,8 @@ typedef struct
   int oldValue;
   bool newHidden;
   bool oldHidden;
-  bool newSelected;
-  bool oldSelected;
   Vector2 position;
-} action;
+} Action;
 
 typedef struct
 {
@@ -46,7 +45,7 @@ typedef struct
   bool selected;
   Vector2 top_left;
   Vector2 bottom_right;
-} num_tile;
+} Button;
 
 typedef struct
 {
@@ -56,22 +55,30 @@ typedef struct
   int attempts[TILES];
 } position;
 
-typedef struct
+typedef struct str_s
 {
-  int top;
-  int capacity;
-  action *array;
+  Action action;
+  struct str_s *next;
 } Stack;
+
+typedef enum
+{
+  UNDO,
+  REDO
+} PossibleMoves;
 
 position currentTile;
 
 tile board[TILES][TILES];
-Stack *actions;
-num_tile num_pad[NUM_PAD_TILES][NUM_PAD_TILES];
+Button numPad[NUM_PAD_TILES][NUM_PAD_TILES];
+Button undoButton;
 float BOARD_SIZE;
 int BOARD_END_FULL;
 Vector2 HUD_SIZE;
 Vector2 NUMPAD_BUTTON_SIZE;
+
+Stack *undo_stack = NULL;
+Stack *redo_stack = NULL;
 
 int BOARD_END;
 float TILE_SIZE;
@@ -105,8 +112,13 @@ void initBoard();
 void goBack(position *currentPos);
 bool goForth(position *currentPos);
 
-Stack *createStack(unsigned capacity);
-void addAction(Stack *stack, action item);
+void push(Stack **stack, Action action);
+Action pop(Stack **undo_stack);
+void moveStacks(Stack **stack1, Stack **stack2, PossibleMoves move);
+void undo(Stack **undo_stack, Stack **redo_stack);
+void redo(Stack **undo_stack, Stack **redo_stack);
+void printValues(Stack *stack);
+void freeStack(Stack *stack);
 
 int main(void)
 {
@@ -119,7 +131,7 @@ int main(void)
       BOARD_END_FULL + PADDING,
       WIDTH - PADDING};
 
-  int button_size = (HUD_SIZE.y - HUD_SIZE.x) / 3;
+  int button_size = (HUD_SIZE.y - HUD_SIZE.x) / 3 - HUD_GAP;
   NUMPAD_BUTTON_SIZE = (Vector2){button_size, button_size};
 
   BOARD_END = BOARD_END_FULL - PADDING;
@@ -130,13 +142,6 @@ int main(void)
 
   currentTile.x = -1;
   currentTile.y = -1;
-
-  actions = createStack(5);
-  if (!actions)
-  {
-    printf("Failed to create stack.\n");
-    return 1;
-  }
 
   InitWindow(screenWidth, screenHeight, "Sudoku");
 
@@ -163,6 +168,8 @@ int main(void)
   }
 
   // De-Initialization
+  freeStack(undo_stack);
+  freeStack(redo_stack);
   //--------------------------------------------------------------------------------------
   CloseWindow(); // Close window and OpenGL context
 
@@ -203,7 +210,7 @@ void drawBoard()
       board[i][j].top_left = (Vector2){x1, y1};
       board[i][j].bottom_right = (Vector2){x2, y2};
 
-      if (board[i][j].selected)
+      if (currentTile.x == i && currentTile.y == j)
       {
         Rectangle rect = {
             .x = x1,
@@ -221,39 +228,60 @@ void drawBoard()
       int x_coord = x1 + HALF_TILE_SIZE - 5;
       int y_coord = y1 + TEXT_PADDING;
       const char *cellText = TextFormat("%i", board[i][j].value);
-      DrawText(cellText, x_coord, y_coord, 28, BLACK);
+      Color textColor = board[i][j].fixed ? BLACK : GRAY;
+      DrawText(cellText, x_coord, y_coord, 28, textColor);
     }
   }
 }
 
 void drawHUD()
 {
-  // printf("tile %d\n", TILE_SIZE);
+  // Draw numpad
   int numpad_count = 1;
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < NUM_PAD_TILES; i++)
   {
-    for (int j = 0; j < 3; j++)
+    for (int j = 0; j < NUM_PAD_TILES; j++)
     {
-      int x1 = j * NUMPAD_BUTTON_SIZE.x + HUD_SIZE.x;
-      int y1 = i * NUMPAD_BUTTON_SIZE.x + 280;
+      // Coordinates to draw numpad buttons and store their positions to detect clicks.
+      int x1 = j * (NUMPAD_BUTTON_SIZE.x + HUD_GAP) + HUD_SIZE.x;
+      int y1 = i * (NUMPAD_BUTTON_SIZE.x + HUD_GAP) + 280;
+      int x2 = x1 + NUMPAD_BUTTON_SIZE.x;
+      int y2 = y1 + NUMPAD_BUTTON_SIZE.x;
 
-      int x2 = (j + 1) * NUMPAD_BUTTON_SIZE.x + HUD_SIZE.x;
-      int y2 = (i + 1) * NUMPAD_BUTTON_SIZE.x + 280;
+      numPad[i][j].top_left = (Vector2){x1, y1};
+      numPad[i][j].bottom_right = (Vector2){x2, y2};
+      numPad[i][j].value = numpad_count;
+
       Rectangle rect = {
           .x = x1,
           .y = y1,
           .width = NUMPAD_BUTTON_SIZE.x,
           .height = NUMPAD_BUTTON_SIZE.y};
-      num_pad[i][j].top_left = (Vector2){x1, y1};
-      num_pad[i][j].bottom_right = (Vector2){x2, y2};
-      num_pad[i][j].value = numpad_count;
       DrawRectangleLinesEx(rect, 2.0, BLACK);
+
       const char *cellText = TextFormat("%i", numpad_count++);
-      int x_coord = x1 + HALF_NUM_TILE_SIZE - 5;
-      int y_coord = y1 + HALF_NUM_TILE_SIZE;
-      DrawText(cellText, x_coord, y_coord, 28, BLACK);
+      int num_x = x1 + HALF_NUM_TILE_SIZE - 5;
+      int num_y = y1 + HALF_NUM_TILE_SIZE - 14;
+      DrawText(cellText, num_x, num_y, 28, BLACK);
     }
   }
+
+  // Draw undo/redo buttons
+  int undo_x = HUD_SIZE.x;
+  int undo_y = PADDING;
+
+  Rectangle rect = {
+      .x = undo_x,
+      .y = undo_y,
+      .width = NUMPAD_BUTTON_SIZE.x,
+      .height = NUMPAD_BUTTON_SIZE.y};
+
+  undoButton.value = 0;
+  undoButton.top_left = (Vector2){undo_x, undo_y};
+  undoButton.bottom_right = (Vector2){undo_x + NUMPAD_BUTTON_SIZE.x, undo_y + NUMPAD_BUTTON_SIZE.y};
+
+  DrawRectangleLinesEx(rect, 2.0, BLACK);
+  DrawText("<", undo_x + 10, undo_y + 10, 28, BLACK);
 }
 
 void drawClock()
@@ -275,6 +303,41 @@ void drawClock()
   DrawText(time, PADDING, 10, 28, BLACK);
 }
 
+void isUndoPressed(Vector2 mousePos)
+{
+  if (mousePos.x > undoButton.top_left.x && mousePos.x < undoButton.bottom_right.x &&
+      mousePos.y > undoButton.top_left.y && mousePos.y < undoButton.bottom_right.y)
+  {
+    printf("undobutton pressed\n");
+    undo(&undo_stack, &redo_stack);
+  }
+}
+
+void isNumPadPressed(Vector2 mousePos)
+{
+  for (int i = 0; i < NUM_PAD_TILES; i++)
+  {
+    for (int j = 0; j < NUM_PAD_TILES; j++)
+    {
+      if (mousePos.x > numPad[i][j].top_left.x && mousePos.x < numPad[i][j].bottom_right.x &&
+          mousePos.y > numPad[i][j].top_left.y && mousePos.y < numPad[i][j].bottom_right.y &&
+          currentTile.x != -1 &&
+          currentTile.y != -1)
+      {
+        printf("numpad clicked at row %d, col %d, value %d\n", currentTile.x, currentTile.y, numPad[i][j].value);
+        push(&undo_stack, (Action){
+                              .newValue = numPad[i][j].value,
+                              .oldValue = board[currentTile.x][currentTile.y].value,
+                              .newHidden = false,
+                              .oldHidden = board[currentTile.x][currentTile.y].hidden,
+                              .position = (Vector2){currentTile.x, currentTile.y}});
+        board[currentTile.x][currentTile.y].value = numPad[i][j].value;
+        board[currentTile.x][currentTile.y].hidden = false;
+      }
+    }
+  }
+}
+
 void mousePressed()
 {
   if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
@@ -282,30 +345,9 @@ void mousePressed()
     Vector2 mousePos = GetMousePosition();
     printf("Mouse clicked at %d, %d\n", GetMouseX(), GetMouseY());
 
-    for (int i = 0; i < NUM_PAD_TILES; i++)
-    {
-      for (int j = 0; j < NUM_PAD_TILES; j++)
-      {
-        if (mousePos.x > num_pad[i][j].top_left.x && mousePos.x < num_pad[i][j].bottom_right.x &&
-            mousePos.y > num_pad[i][j].top_left.y && mousePos.y < num_pad[i][j].bottom_right.y)
-        {
-          if (currentTile.x != -1 && currentTile.y != -1)
-          {
-            printf("numpad clicked at row %d, col %d, value %d\n", currentTile.x, currentTile.y, num_pad[i][j].value);
-            addAction(actions, (action){
-                                   .newValue = num_pad[i][j].value,
-                                   .oldValue = board[currentTile.x][currentTile.y].value,
-                                   .newHidden = false,
-                                   .oldHidden = board[currentTile.x][currentTile.y].hidden,
-                                   .newSelected = true,
-                                   .oldSelected = board[currentTile.x][currentTile.y].selected,
-                                   .position = (Vector2){currentTile.x, currentTile.y}});
-            board[currentTile.x][currentTile.y].value = num_pad[i][j].value;
-            board[currentTile.x][currentTile.y].hidden = false;
-          }
-        }
-      }
-    }
+    isUndoPressed(mousePos);
+
+    isNumPadPressed(mousePos);
 
     if (currentTile.x != -1 && currentTile.y != -1 &&
         (mousePos.x > BOARD_END || mousePos.x < PADDING ||
@@ -318,15 +360,21 @@ void mousePressed()
     {
       for (int j = 0; j < TILES; j++)
       {
-        board[i][j].selected = false;
-        if (board[i][j].fixed != true &&
+        bool withinTile =
             mousePos.x > board[i][j].top_left.x && mousePos.x < board[i][j].bottom_right.x &&
-            mousePos.y > board[i][j].top_left.y && mousePos.y < board[i][j].bottom_right.y)
+            mousePos.y > board[i][j].top_left.y && mousePos.y < board[i][j].bottom_right.y;
+        if (board[i][j].fixed != true &&
+            withinTile)
         {
           printf("Tile clicked at row %d, col %d\n", i, j);
-          board[i][j].selected = true;
           currentTile.x = i;
           currentTile.y = j;
+        }
+        else if (board[i][j].fixed == true &&
+                 withinTile)
+        {
+          currentTile.x = -1;
+          currentTile.y = -1;
         }
       }
     }
@@ -596,7 +644,6 @@ void initBoard()
       board[i][j].value = 0;
       board[i][j].hidden = false;
       board[i][j].fixed = true;
-      board[i][j].selected = false;
     }
   }
 }
@@ -617,73 +664,83 @@ void hideTiles(int numTiles)
   } while (numTiles > 0);
 }
 
-Stack *createStack(unsigned capacity)
+void push(Stack **stack, Action action)
 {
-  Stack *stack = (Stack *)malloc(sizeof(Stack));
-  if (!stack)
+  Stack *new_node = (Stack *)malloc(sizeof(Stack));
+  if (new_node == NULL)
   {
-    return NULL;
+    printf("Error: no se pudo asignar memoria\n");
+    exit(1);
   }
-  stack->capacity = capacity;
-  stack->top = -1;
 
-  stack->array = (action *)malloc(stack->capacity * sizeof(action));
-  if (!stack->array)
+  new_node->action = action;
+  new_node->next = *stack;
+  *stack = new_node;
+}
+
+Action pop(Stack **undo_stack)
+{
+  Stack *temp = *undo_stack;
+  Action action = temp->action;
+  *undo_stack = (*undo_stack)->next;
+  free(temp);
+  return action;
+}
+
+void moveStacks(Stack **stack1, Stack **stack2, PossibleMoves move)
+{
+  if (*stack1 == NULL)
   {
-    free(stack);
-    return NULL;
-  }
-  return stack;
-}
-
-int isFull(Stack *stack)
-{
-  return stack->top == stack->capacity - 1;
-}
-
-int isEmpty(Stack *stack)
-{
-  return stack->top == -1;
-}
-
-void addAction(Stack *stack, action item)
-{
-  if (isFull(stack))
-  {
-    printf("Stack Overflow\n");
     return;
   }
-  int index = ++stack->top;
-  printf("%d pushed to stack at %d\n", item.oldValue, index);
-  stack->array[index] = item;
+  Action action = pop(stack1);
+
+  switch (move)
+  {
+  case UNDO:
+    board[(int)action.position.x][(int)action.position.y].value = action.oldValue;
+    board[(int)action.position.x][(int)action.position.y].hidden = action.oldHidden;
+    currentTile.x = action.position.x;
+    currentTile.y = action.position.y;
+    break;
+  case REDO:
+    board[(int)action.position.x][(int)action.position.y].value = action.newValue;
+    board[(int)action.position.x][(int)action.position.y].hidden = action.newHidden;
+    currentTile.x = action.position.x;
+    currentTile.y = action.position.y;
+    break;
+  }
+
+  push(stack2, action);
 }
 
-action *pop(Stack *stack)
+void undo(Stack **undo_stack, Stack **redo_stack)
 {
-  if (isEmpty(stack))
-  {
-    printf("Stack Underflow\n");
-    return NULL;
-  }
-  return &stack->array[stack->top--];
+  moveStacks(undo_stack, redo_stack, UNDO);
 }
 
-action *peek(Stack *stack)
+void redo(Stack **undo_stack, Stack **redo_stack)
 {
-  if (isEmpty(stack))
+  moveStacks(redo_stack, undo_stack, REDO);
+}
+
+void printValues(Stack *stack)
+{
+  while (stack != NULL)
   {
-    printf("Stack is empty\n");
-    return NULL;
+    // printf("%d\n", stack->action);
+    stack = stack->next;
   }
-  return &stack->array[stack->top];
 }
 
 void freeStack(Stack *stack)
 {
-  if (stack)
+  Stack *temp;
+  while (stack != NULL)
   {
-    free(stack->array);
-    free(stack);
+    temp = stack;
+    stack = stack->next;
+    free(temp);
   }
 }
 
