@@ -1,5 +1,4 @@
 #include "raylib.h"
-// #include "raygui.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "time.h"
@@ -72,6 +71,7 @@ position currentTile;
 tile board[TILES][TILES];
 Button numPad[NUM_PAD_TILES][NUM_PAD_TILES];
 Button undoButton;
+Button redoButton;
 float BOARD_SIZE;
 int BOARD_END_FULL;
 Vector2 HUD_SIZE;
@@ -270,7 +270,7 @@ void drawHUD()
   int undo_x = HUD_SIZE.x;
   int undo_y = PADDING;
 
-  Rectangle rect = {
+  Rectangle undo_rect = {
       .x = undo_x,
       .y = undo_y,
       .width = NUMPAD_BUTTON_SIZE.x,
@@ -280,8 +280,25 @@ void drawHUD()
   undoButton.top_left = (Vector2){undo_x, undo_y};
   undoButton.bottom_right = (Vector2){undo_x + NUMPAD_BUTTON_SIZE.x, undo_y + NUMPAD_BUTTON_SIZE.y};
 
-  DrawRectangleLinesEx(rect, 2.0, BLACK);
-  DrawText("<", undo_x + 10, undo_y + 10, 28, BLACK);
+  DrawRectangleLinesEx(undo_rect, 2.0, BLACK);
+  DrawText("<", undo_x + HALF_NUM_TILE_SIZE - 5, undo_y + HALF_NUM_TILE_SIZE - 14, 35, BLACK);
+
+  // redo
+  int redo_x = HUD_SIZE.x + NUMPAD_BUTTON_SIZE.x + HUD_GAP;
+  int redo_y = PADDING;
+
+  Rectangle redo_rect = {
+      .x = redo_x,
+      .y = redo_y,
+      .width = NUMPAD_BUTTON_SIZE.x,
+      .height = NUMPAD_BUTTON_SIZE.y};
+
+  redoButton.value = 0;
+  redoButton.top_left = (Vector2){redo_x, redo_y};
+  redoButton.bottom_right = (Vector2){redo_x + NUMPAD_BUTTON_SIZE.x, redo_y + NUMPAD_BUTTON_SIZE.y};
+
+  DrawRectangleLinesEx(redo_rect, 2.0, BLACK);
+  DrawText(">", redo_x + HALF_NUM_TILE_SIZE - 5, redo_y + HALF_NUM_TILE_SIZE - 14, 35, BLACK);
 }
 
 void drawClock()
@@ -303,13 +320,20 @@ void drawClock()
   DrawText(time, PADDING, 10, 28, BLACK);
 }
 
-void isUndoPressed(Vector2 mousePos)
+void isUndoRedoPressed(Vector2 mousePos)
 {
   if (mousePos.x > undoButton.top_left.x && mousePos.x < undoButton.bottom_right.x &&
       mousePos.y > undoButton.top_left.y && mousePos.y < undoButton.bottom_right.y)
   {
     printf("undobutton pressed\n");
     undo(&undo_stack, &redo_stack);
+  }
+
+  if (mousePos.x > redoButton.top_left.x && mousePos.x < redoButton.bottom_right.x &&
+      mousePos.y > redoButton.top_left.y && mousePos.y < redoButton.bottom_right.y)
+  {
+    printf("redoButton pressed\n");
+    redo(&undo_stack, &redo_stack);
   }
 }
 
@@ -345,7 +369,7 @@ void mousePressed()
     Vector2 mousePos = GetMousePosition();
     printf("Mouse clicked at %d, %d\n", GetMouseX(), GetMouseY());
 
-    isUndoPressed(mousePos);
+    isUndoRedoPressed(mousePos);
 
     isNumPadPressed(mousePos);
 
