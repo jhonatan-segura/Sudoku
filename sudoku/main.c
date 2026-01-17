@@ -13,6 +13,8 @@
 #define TEXT_PADDING 18
 #define LINE_THICKNESS 3.0
 
+#define ALLOWED_NUMBERS 9
+
 // difficulty
 #define EASY 40
 #define MEDIUM 50
@@ -21,7 +23,7 @@
 typedef struct
 {
   int value;
-  int tempValue;
+  int targetValue;
   int attempts[TILES];
   bool hidden;
   bool fixed;
@@ -42,6 +44,7 @@ typedef struct
 {
   int value;
   bool selected;
+  Color color;
   Vector2 top_left;
   Vector2 bottom_right;
 } Button;
@@ -103,7 +106,9 @@ bool fillCell(position *currentPos);
 void drawBoard(void);
 void drawHUD(void);
 void drawClock(void);
-void mousePressed();
+void isBoardPressed();
+void handleMouse();
+void handleKeyboard();
 int randValue(int min, int max);
 void resetAttempts(position *currentPos);
 bool isRandomValueValid(position *currentPos);
@@ -158,7 +163,8 @@ int main(void)
 
     ClearBackground(RAYWHITE);
     // Input
-    mousePressed();
+    handleMouse();
+    handleKeyboard();
 
     drawBoard();
     drawHUD();
@@ -251,12 +257,16 @@ void drawHUD()
       numPad[i][j].top_left = (Vector2){x1, y1};
       numPad[i][j].bottom_right = (Vector2){x2, y2};
       numPad[i][j].value = numpad_count;
+      numPad[i][j].color = numPad[i][j].selected ? LIGHTGRAY : WHITE;
 
       Rectangle rect = {
           .x = x1,
           .y = y1,
           .width = NUMPAD_BUTTON_SIZE.x,
           .height = NUMPAD_BUTTON_SIZE.y};
+      Vector2 rectPos = (Vector2){rect.x, rect.y};
+      Vector2 rectSize = (Vector2){rect.width, rect.height};
+      DrawRectangleV(rectPos, rectSize, numPad[i][j].color);
       DrawRectangleLinesEx(rect, 2.0, BLACK);
 
       const char *cellText = TextFormat("%i", numpad_count++);
@@ -270,7 +280,7 @@ void drawHUD()
   int undo_x = HUD_SIZE.x;
   int undo_y = PADDING;
 
-  Rectangle undo_rect = {
+  Rectangle undoRect = {
       .x = undo_x,
       .y = undo_y,
       .width = NUMPAD_BUTTON_SIZE.x,
@@ -279,15 +289,19 @@ void drawHUD()
   undoButton.value = 0;
   undoButton.top_left = (Vector2){undo_x, undo_y};
   undoButton.bottom_right = (Vector2){undo_x + NUMPAD_BUTTON_SIZE.x, undo_y + NUMPAD_BUTTON_SIZE.y};
+  Vector2 undoPos = (Vector2){undoRect.x, undoRect.y};
+  Vector2 undoSize = (Vector2){undoRect.width, undoRect.height};
+  undoButton.color = undoButton.selected ? LIGHTGRAY : WHITE;
+  DrawRectangleV(undoPos, undoSize, undoButton.color);
 
-  DrawRectangleLinesEx(undo_rect, 2.0, BLACK);
+  DrawRectangleLinesEx(undoRect, 2.0, BLACK);
   DrawText("<", undo_x + HALF_NUM_TILE_SIZE - 5, undo_y + HALF_NUM_TILE_SIZE - 14, 35, BLACK);
 
   // redo
   int redo_x = HUD_SIZE.x + NUMPAD_BUTTON_SIZE.x + HUD_GAP;
   int redo_y = PADDING;
 
-  Rectangle redo_rect = {
+  Rectangle redoRect = {
       .x = redo_x,
       .y = redo_y,
       .width = NUMPAD_BUTTON_SIZE.x,
@@ -296,8 +310,12 @@ void drawHUD()
   redoButton.value = 0;
   redoButton.top_left = (Vector2){redo_x, redo_y};
   redoButton.bottom_right = (Vector2){redo_x + NUMPAD_BUTTON_SIZE.x, redo_y + NUMPAD_BUTTON_SIZE.y};
+  Vector2 redoPos = (Vector2){redoRect.x, redoRect.y};
+  Vector2 redoSize = (Vector2){redoRect.width, redoRect.height};
+  redoButton.color = redoButton.selected ? LIGHTGRAY : WHITE;
+  DrawRectangleV(redoPos, redoSize, redoButton.color);
 
-  DrawRectangleLinesEx(redo_rect, 2.0, BLACK);
+  DrawRectangleLinesEx(redoRect, 2.0, BLACK);
   DrawText(">", redo_x + HALF_NUM_TILE_SIZE - 5, redo_y + HALF_NUM_TILE_SIZE - 14, 35, BLACK);
 }
 
@@ -322,17 +340,35 @@ void drawClock()
 
 void isUndoRedoPressed(Vector2 mousePos)
 {
-  if (mousePos.x > undoButton.top_left.x && mousePos.x < undoButton.bottom_right.x &&
-      mousePos.y > undoButton.top_left.y && mousePos.y < undoButton.bottom_right.y)
+  bool withinUndoButton = mousePos.x > undoButton.top_left.x && mousePos.x < undoButton.bottom_right.x &&
+                          mousePos.y > undoButton.top_left.y && mousePos.y < undoButton.bottom_right.y;
+  if (withinUndoButton)
   {
-    printf("undobutton pressed\n");
+    undoButton.selected = true;
+  }
+  else
+  {
+    undoButton.selected = false;
+  }
+
+  if (withinUndoButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  {
     undo(&undo_stack, &redo_stack);
   }
 
-  if (mousePos.x > redoButton.top_left.x && mousePos.x < redoButton.bottom_right.x &&
-      mousePos.y > redoButton.top_left.y && mousePos.y < redoButton.bottom_right.y)
+  bool withinRedoButton = mousePos.x > redoButton.top_left.x && mousePos.x < redoButton.bottom_right.x &&
+                          mousePos.y > redoButton.top_left.y && mousePos.y < redoButton.bottom_right.y;
+  if (withinRedoButton)
   {
-    printf("redoButton pressed\n");
+    redoButton.selected = true;
+  }
+  else
+  {
+    redoButton.selected = false;
+  }
+
+  if (withinRedoButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  {
     redo(&undo_stack, &redo_stack);
   }
 }
@@ -343,10 +379,21 @@ void isNumPadPressed(Vector2 mousePos)
   {
     for (int j = 0; j < NUM_PAD_TILES; j++)
     {
-      if (mousePos.x > numPad[i][j].top_left.x && mousePos.x < numPad[i][j].bottom_right.x &&
-          mousePos.y > numPad[i][j].top_left.y && mousePos.y < numPad[i][j].bottom_right.y &&
+      bool withinNumPad = mousePos.x > numPad[i][j].top_left.x && mousePos.x < numPad[i][j].bottom_right.x &&
+                          mousePos.y > numPad[i][j].top_left.y && mousePos.y < numPad[i][j].bottom_right.y;
+      if (withinNumPad)
+      {
+        numPad[i][j].selected = true;
+      }
+      else
+      {
+        numPad[i][j].selected = false;
+      }
+
+      if (withinNumPad &&
           currentTile.x != -1 &&
-          currentTile.y != -1)
+          currentTile.y != -1 &&
+          IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
       {
         printf("numpad clicked at row %d, col %d, value %d\n", currentTile.x, currentTile.y, numPad[i][j].value);
         push(&undo_stack, (Action){
@@ -362,24 +409,47 @@ void isNumPadPressed(Vector2 mousePos)
   }
 }
 
-void mousePressed()
+void handleKeyboard()
+{
+  int numbers[ALLOWED_NUMBERS] = {KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE};
+  for (int i = 0; i < ALLOWED_NUMBERS; i++)
+  {
+    if (IsKeyPressed(numbers[i]) &&
+        currentTile.x != -1 &&
+        currentTile.y != -1)
+    {
+      int value = numbers[i] - 48;
+      push(&undo_stack, (Action){
+          .newValue = value,
+          .oldValue = board[currentTile.x][currentTile.y].value,
+          .newHidden = false,
+          .oldHidden = board[currentTile.x][currentTile.y].hidden,
+          .position = (Vector2){currentTile.x, currentTile.y}});
+      board[currentTile.x][currentTile.y].value = value;
+      board[currentTile.x][currentTile.y].hidden = false;
+    }
+  }
+}
+
+void handleMouse()
+{
+  Vector2 mousePos = GetMousePosition();
+  // printf("Mouse over %f, %f\n", mousePos.x, mousePos.y);
+  isNumPadPressed(mousePos);
+  isUndoRedoPressed(mousePos);
+  isBoardPressed(mousePos);
+}
+
+void isBoardPressed(Vector2 mousePos)
 {
   if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
   {
-    Vector2 mousePos = GetMousePosition();
-    printf("Mouse clicked at %d, %d\n", GetMouseX(), GetMouseY());
-
-    isUndoRedoPressed(mousePos);
-
-    isNumPadPressed(mousePos);
-
     if (currentTile.x != -1 && currentTile.y != -1 &&
         (mousePos.x > BOARD_END || mousePos.x < PADDING ||
          mousePos.y > BOARD_END || mousePos.y < PADDING))
     {
       return;
     }
-
     for (int i = 0; i < TILES; i++)
     {
       for (int j = 0; j < TILES; j++)
@@ -390,7 +460,6 @@ void mousePressed()
         if (board[i][j].fixed != true &&
             withinTile)
         {
-          printf("Tile clicked at row %d, col %d\n", i, j);
           currentTile.x = i;
           currentTile.y = j;
         }
@@ -582,7 +651,6 @@ void resetAttemptsCurrentPos(position *currentPos)
 
 bool isRandomValueValid(position *currentPos)
 {
-  // resetAttemptsCurrentPos(currentPos);
   do
   {
     if (areAllOptionsAttemptedCurrentPos(currentPos))
@@ -609,11 +677,6 @@ void printBoard()
       {
         printf("| ");
       }
-      if (board[x][y].value == 0)
-      {
-        printf(". ");
-        continue;
-      }
       printf("%d ", board[x][y].value);
     }
     printf("\n");
@@ -629,6 +692,7 @@ bool fillCell(position *currentPos)
   {
     setAttempt(currentPos);
     board[currentPos->y][currentPos->x].value = currentPos->tempValue;
+    board[currentPos->y][currentPos->x].targetValue = currentPos->tempValue;
     return true;
   }
   return false;
