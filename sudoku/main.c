@@ -420,11 +420,11 @@ void handleKeyboard()
     {
       int value = numbers[i] - 48;
       push(&undo_stack, (Action){
-          .newValue = value,
-          .oldValue = board[currentTile.x][currentTile.y].value,
-          .newHidden = false,
-          .oldHidden = board[currentTile.x][currentTile.y].hidden,
-          .position = (Vector2){currentTile.x, currentTile.y}});
+                            .newValue = value,
+                            .oldValue = board[currentTile.x][currentTile.y].value,
+                            .newHidden = false,
+                            .oldHidden = board[currentTile.x][currentTile.y].hidden,
+                            .position = (Vector2){currentTile.x, currentTile.y}});
       board[currentTile.x][currentTile.y].value = value;
       board[currentTile.x][currentTile.y].hidden = false;
     }
@@ -759,6 +759,15 @@ void push(Stack **stack, Action action)
   {
     printf("Error: no se pudo asignar memoria\n");
     exit(1);
+  }
+
+  // Evitar repetir la misma acción multiples veces.
+  if (*stack != NULL &&
+      (*stack)->action.newValue == action.newValue &&
+      (*stack)->action.position.x == action.position.x &&
+      (*stack)->action.position.y == action.position.y)
+  {
+    return;
   }
 
   new_node->action = action;
