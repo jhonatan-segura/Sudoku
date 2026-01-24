@@ -10,15 +10,13 @@ int seconds = 0;
 void drawGame(Game *game)
 {
   drawBoard(game);
-  drawHUD(game);
-  drawClock();
+  drawNumPad(game);
+  drawActionButtons(game);
+  drawTimer();
 }
 
-void drawBoard(Game *game)
+void drawBoardGrid(Game *game, float tileSize)
 {
-  float tileSize = game->layout.tileSize;
-  float halfTileSize = game->layout.halfTileSize;
-
   for (int i = 0; i < TILES + 1; i++)
   {
     int coord = i * tileSize + PADDING;
@@ -36,6 +34,11 @@ void drawBoard(Game *game)
       DrawLineEx(start_ver, end_ver, LINE_THICKNESS, BLACK);
     }
   }
+}
+
+void drawBoardDigits(Game *game, float tileSize, float halfTileSize)
+{
+  Tile selectedCell = game->board[game->currentTile.x][game->currentTile.y];
 
   for (int i = 0; i < TILES; i++)
   {
@@ -47,6 +50,16 @@ void drawBoard(Game *game)
       int y2 = (i + 1) * tileSize + PADDING;
       game->board[i][j].top_left = (Vec2){x1, y1};
       game->board[i][j].bottom_right = (Vec2){x2, y2};
+
+      if (game->board[i][j].value == selectedCell.value && !selectedCell.hidden && !game->board[i][j].hidden)
+      {
+        Rectangle rect = {
+            .x = x1,
+            .y = y1,
+            .width = tileSize,
+            .height = tileSize};
+        DrawRectangleLinesEx(rect, 3.0, (Color){121, 172, 224, 255});
+      }
 
       if (game->currentTile.x == i && game->currentTile.y == j)
       {
@@ -72,7 +85,84 @@ void drawBoard(Game *game)
   }
 }
 
-void drawHUD(Game *game)
+void drawBoard(Game *game)
+{
+  float tileSize = game->layout.tileSize;
+  float halfTileSize = game->layout.halfTileSize;
+
+  drawBoardGrid(game, tileSize);
+  drawBoardDigits(game, tileSize, halfTileSize);
+}
+
+void drawActionButtons(Game *game)
+{
+  Vector2 numpadButtonSize = game->layout.numpadButtonSize;
+  Vector2 actionButtonSize = game->layout.actionButtonSize;
+  Vector2 hudSize = game->layout.hudSize;
+  float halfActionSize = game->layout.halfActionButtonSize;
+
+  // Draw undo/redo buttons
+  int undo_x = hudSize.x;
+  int undo_y = PADDING + numpadButtonSize.x + HUD_GAP;
+
+  Rectangle undoRect = {
+      .x = undo_x,
+      .y = undo_y,
+      .width = actionButtonSize.x,
+      .height = actionButtonSize.y};
+
+  game->undoButton.top_left = (Vector2){undo_x, undo_y};
+  game->undoButton.bottom_right = (Vector2){undo_x + actionButtonSize.x, undo_y + actionButtonSize.y};
+  Vector2 undoPos = (Vector2){undoRect.x, undoRect.y};
+  Vector2 undoSize = (Vector2){undoRect.width, undoRect.height};
+  game->undoButton.color = game->undoButton.selected ? LIGHTGRAY : WHITE;
+  DrawRectangleV(undoPos, undoSize, game->undoButton.color);
+
+  DrawRectangleLinesEx(undoRect, 2.0, BLACK);
+  DrawText("<", undo_x + halfActionSize - 5, undo_y + halfActionSize - 14, 35, BLACK);
+
+  // redo
+  int redo_x = hudSize.x + actionButtonSize.x + HUD_GAP;
+  int redo_y = PADDING + numpadButtonSize.x + HUD_GAP;
+
+  Rectangle redoRect = {
+      .x = redo_x,
+      .y = redo_y,
+      .width = actionButtonSize.x,
+      .height = actionButtonSize.y};
+
+  game->redoButton.top_left = (Vector2){redo_x, redo_y};
+  game->redoButton.bottom_right = (Vector2){redo_x + actionButtonSize.x, redo_y + actionButtonSize.y};
+  Vector2 redoPos = (Vector2){redoRect.x, redoRect.y};
+  Vector2 redoSize = (Vector2){redoRect.width, redoRect.height};
+  game->redoButton.color = game->redoButton.selected ? LIGHTGRAY : WHITE;
+  DrawRectangleV(redoPos, redoSize, game->redoButton.color);
+
+  DrawRectangleLinesEx(redoRect, 2.0, BLACK);
+  DrawText(">", redo_x + halfActionSize - 5, redo_y + halfActionSize - 14, 35, BLACK);
+
+  // clearButton
+  int clear_x = hudSize.x + (actionButtonSize.x + HUD_GAP) * 2;
+  int clear_y = PADDING + numpadButtonSize.x + HUD_GAP;
+
+  Rectangle clearRect = {
+      .x = clear_x,
+      .y = clear_y,
+      .width = actionButtonSize.x,
+      .height = actionButtonSize.y};
+
+  game->clearCellButton.top_left = (Vector2){clear_x, clear_y};
+  game->clearCellButton.bottom_right = (Vector2){clear_x + actionButtonSize.x, clear_y + actionButtonSize.y};
+  Vector2 clearPos = (Vector2){clearRect.x, clearRect.y};
+  Vector2 clearSize = (Vector2){clearRect.width, clearRect.height};
+  game->clearCellButton.color = game->clearCellButton.selected ? LIGHTGRAY : WHITE;
+  DrawRectangleV(clearPos, clearSize, game->clearCellButton.color);
+
+  DrawRectangleLinesEx(clearRect, 2.0, BLACK);
+  DrawText("x", clear_x + halfActionSize - 5, clear_y + halfActionSize - 14, 35, BLACK);
+}
+
+void drawNumPad(Game *game)
 {
   Vector2 numpadButtonSize = game->layout.numpadButtonSize;
   Vector2 hudSize = game->layout.hudSize;
@@ -111,51 +201,10 @@ void drawHUD(Game *game)
       DrawText(cellText, num_x, num_y, 28, BLACK);
     }
   }
-
-  // Draw undo/redo buttons
-  int undo_x = hudSize.x;
-  int undo_y = PADDING;
-
-  Rectangle undoRect = {
-      .x = undo_x,
-      .y = undo_y,
-      .width = numpadButtonSize.x,
-      .height = numpadButtonSize.y};
-
-  game->undoButton.top_left = (Vector2){undo_x, undo_y};
-  game->undoButton.bottom_right = (Vector2){undo_x + numpadButtonSize.x, undo_y + numpadButtonSize.y};
-  Vector2 undoPos = (Vector2){undoRect.x, undoRect.y};
-  Vector2 undoSize = (Vector2){undoRect.width, undoRect.height};
-  game->undoButton.color = game->undoButton.selected ? LIGHTGRAY : WHITE;
-  DrawRectangleV(undoPos, undoSize, game->undoButton.color);
-
-  DrawRectangleLinesEx(undoRect, 2.0, BLACK);
-  DrawText("<", undo_x + halfNumTileSize - 5, undo_y + halfNumTileSize - 14, 35, BLACK);
-
-  // redo
-  int redo_x = hudSize.x + numpadButtonSize.x + HUD_GAP;
-  int redo_y = PADDING;
-
-  Rectangle redoRect = {
-      .x = redo_x,
-      .y = redo_y,
-      .width = numpadButtonSize.x,
-      .height = numpadButtonSize.y};
-
-  game->redoButton.top_left = (Vector2){redo_x, redo_y};
-  game->redoButton.bottom_right = (Vector2){redo_x + numpadButtonSize.x, redo_y + numpadButtonSize.y};
-  Vector2 redoPos = (Vector2){redoRect.x, redoRect.y};
-  Vector2 redoSize = (Vector2){redoRect.width, redoRect.height};
-  game->redoButton.color = game->redoButton.selected ? LIGHTGRAY : WHITE;
-  DrawRectangleV(redoPos, redoSize, game->redoButton.color);
-
-  DrawRectangleLinesEx(redoRect, 2.0, BLACK);
-  DrawText(">", redo_x + halfNumTileSize - 5, redo_y + halfNumTileSize - 14, 35, BLACK);
 }
 
-void drawClock()
+void drawTimer()
 {
-
   now = GetTime();
   if (now - prevTime >= 1.0f)
   {

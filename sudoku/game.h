@@ -39,6 +39,7 @@ typedef struct
   NumPadButton numPad[NUM_PAD_TILES][NUM_PAD_TILES];
   Button undoButton;
   Button redoButton;
+  Button clearCellButton;
   RenderLayout layout;
 } Game;
 
@@ -48,6 +49,4 @@ void gameUnload(Game *game);
 void moveStacks(Game *game, Stack **stack1, Stack **stack2, PossibleMoves move);
 void undo(Game *game, Stack **undo_stack, Stack **redo_stack);
 void redo(Game *game, Stack **undo_stack, Stack **redo_stack);
-void push(Stack **stack, Action action);
-Action pop(Stack **undo_stack);
-void freeStack(Stack *stack);
+void clearCell(Game *game);

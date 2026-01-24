@@ -9,4 +9,4 @@ void handleInput(Game *game);
 void isBoardPressed(Game *game, Vector2 mousePos);
 void handleKeyboard(Game *game);
 void isNumPadPressed(Game *game, Vector2 mousePos);
-void isUndoRedoPressed(Game *game, Vector2 mousePos);
+void isActionClicked(Game *game, Vector2 mousePos);

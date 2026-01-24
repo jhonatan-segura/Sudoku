@@ -8,6 +8,8 @@ typedef struct
     float tileSize;
     float halfTileSize;
     float halfNumTileSize;
+    float halfActionButtonSize;
     Vector2 hudSize;
     Vector2 numpadButtonSize;
+    Vector2 actionButtonSize;
 } RenderLayout;

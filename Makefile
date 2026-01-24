@@ -23,6 +23,7 @@ endif
 # Flags
 # =========================
 CFLAGS   = -Wall -Wextra -O2 $(STD)
+CDEBUGFLAGS   = -Wall -Wextra -g -O0 $(STD)
 INCLUDES = -I/usr/local/include
 LIBS     = -L/usr/local/lib -lraylib -lGL -lm -lpthread -ldl -lrt
 
@@ -41,5 +42,8 @@ $(TARGET): $(SRC) | $(BIN_DIR)
 
 clean:
 	rm -f $(TARGET)
+
+debug:
+	$(CC) $(SRC) -o $(TARGET) $(CDEBUGFLAGS) $(INCLUDES) $(LIBS)
 
 .PHONY: all clean
