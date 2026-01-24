@@ -1,12 +1,13 @@
 #include <raylib.h>
+#include <stdlib.h>
 #include "render.h"
 #include "game.h"
 #include "input.h"
 
 int main(void)
 {
-  Game game;
-  gameInit(&game);
+  Game *game = calloc(1, sizeof(Game));
+  gameInit(game);
 
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Sudoku");
 
@@ -16,20 +17,20 @@ int main(void)
   while (!WindowShouldClose())
   {
     // Update
-    handleInput(&game);
+    handleInput(game);
 
     // Draw
     BeginDrawing();
 
     ClearBackground(RAYWHITE);
 
-    drawGame(&game);
+    drawGame(game);
 
     EndDrawing();
   }
 
   // De-Initialization
-  gameUnload(&game);
+  gameUnload(game);
   //--------------------------------------------------------------------------------------
   CloseWindow(); // Close window and OpenGL context
 

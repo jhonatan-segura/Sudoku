@@ -5,6 +5,7 @@
 #include "stdio.h"
 #include "render.h"
 #include "input.h"
+#include "stack.h"
 
 void initTime()
 {
@@ -24,14 +25,32 @@ void initRenderLayout(RenderLayout *layout)
 
   int buttonSize = (layout->hudSize.y - layout->hudSize.x) / 3 - HUD_GAP;
   layout->numpadButtonSize = (Vector2){buttonSize, buttonSize};
+  layout->actionButtonSize = (Vector2){buttonSize / 2.0f, buttonSize / 2.0f};
 
   layout->tileSize = (layout->boardEnd - PADDING) / (float)TILES;
   layout->halfTileSize = layout->tileSize / 2.0f;
   layout->halfNumTileSize = layout->numpadButtonSize.x / 2.0f;
+  layout->halfActionButtonSize = layout->actionButtonSize.x / 2.0f;
 }
 
 void gameInit(Game *game)
 {
+  // --- current tile ---
+  game->currentTile.x = -1;
+  game->currentTile.y = -1;
+
+  // --- stacks ---
+  game->undoStack = NULL;
+  game->redoStack = NULL;
+
+  // --- buttons ---
+  game->undoButton = (Button){0};
+  game->redoButton = (Button){0};
+  game->clearCellButton = (Button){0};
+  game->undoButton.selected = false;
+  game->redoButton.selected = false;
+  game->clearCellButton.selected = false;
+
   initRenderLayout(&game->layout);
   initTime();
   initBoard(game->board);
@@ -44,6 +63,7 @@ void gameUnload(Game *game)
 {
   freeStack(game->undoStack);
   freeStack(game->redoStack);
+  free(game);
 }
 
 void moveStacks(Game *game, Stack **stack1, Stack **stack2, PossibleMoves move)
@@ -83,4 +103,14 @@ void undo(Game *game, Stack **undo_stack, Stack **redo_stack)
 void redo(Game *game, Stack **undo_stack, Stack **redo_stack)
 {
   moveStacks(game, redo_stack, undo_stack, REDO);
+}
+
+void clearCell(Game *game)
+{
+  Tile *selectedTile = &game->board[game->currentTile.x][game->currentTile.y];
+  if (game->currentTile.isSet && !selectedTile->fixed)
+  {
+    selectedTile->value = selectedTile->targetValue;
+    selectedTile->hidden = true;
+  }
 }

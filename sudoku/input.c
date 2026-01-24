@@ -1,13 +1,14 @@
 #include "input.h"
 #include "game.h"
 #include "stdio.h"
+#include "stack.h"
 
 void handleInput(Game *game)
 {
   Vector2 mousePos = GetMousePosition();
   // printf("Mouse over %f, %f\n", mousePos.x, mousePos.y);
   isNumPadPressed(game, mousePos);
-  isUndoRedoPressed(game, mousePos);
+  isActionClicked(game, mousePos);
   isBoardPressed(game, mousePos);
   handleKeyboard(game);
 }
@@ -33,7 +34,7 @@ void handleKeyboard(Game *game)
   }
 }
 
-void isUndoRedoPressed(Game *game, Vector2 mousePos)
+void isActionClicked(Game *game, Vector2 mousePos)
 {
   bool withinUndoButton = mousePos.x > game->undoButton.top_left.x && mousePos.x < game->undoButton.bottom_right.x &&
                           mousePos.y > game->undoButton.top_left.y && mousePos.y < game->undoButton.bottom_right.y;
@@ -65,6 +66,23 @@ void isUndoRedoPressed(Game *game, Vector2 mousePos)
   if (withinRedoButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
   {
     redo(game, &game->undoStack, &game->redoStack);
+  }
+
+  // Action
+  bool withinClearCellButton = mousePos.x > game->clearCellButton.top_left.x && mousePos.x < game->clearCellButton.bottom_right.x &&
+                          mousePos.y > game->clearCellButton.top_left.y && mousePos.y < game->clearCellButton.bottom_right.y;
+  if (withinClearCellButton)
+  {
+    game->clearCellButton.selected = true;
+  }
+  else
+  {
+    game->clearCellButton.selected = false;
+  }
+
+  if (withinClearCellButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  {
+    clearCell(game);
   }
 }
 
