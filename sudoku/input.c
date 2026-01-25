@@ -84,6 +84,23 @@ void isActionClicked(Game *game, Vector2 mousePos)
   {
     clearCell(game);
   }
+
+  // New Game
+  bool withinNewGameButton = mousePos.x > game->newGameButton.top_left.x && mousePos.x < game->newGameButton.bottom_right.x &&
+                          mousePos.y > game->newGameButton.top_left.y && mousePos.y < game->newGameButton.bottom_right.y;
+  if (withinNewGameButton)
+  {
+    game->newGameButton.selected = true;
+  }
+  else
+  {
+    game->newGameButton.selected = false;
+  }
+
+  if (withinNewGameButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  {
+    newGame(game);
+  }
 }
 
 void isNumPadPressed(Game *game, Vector2 mousePos)

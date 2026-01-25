@@ -6,4 +6,4 @@ void drawGame(Game *game);
 void drawBoard(Game *game);
 void drawActionButtons(Game *game);
 void drawNumPad(Game *game);
-void drawTimer(void);
+void drawTimer(Game *game);

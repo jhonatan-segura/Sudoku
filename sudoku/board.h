@@ -32,7 +32,7 @@ typedef struct
   int attempts[TILES];
 } Position;
 
-void initTime();
+void initRandomSeed();
 bool isValidCol(Tile board[][TILES], Position *currentPos);
 bool isValidRow(Tile board[][TILES], Position *currentPos);
 bool notAttemptedYet(Tile board[][TILES], Position *currentPos);

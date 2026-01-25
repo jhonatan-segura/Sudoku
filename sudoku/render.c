@@ -4,15 +4,13 @@
 
 float prevTime = 0.0f;
 float now = 0.0f;
-int minutes = 0;
-int seconds = 0;
 
 void drawGame(Game *game)
 {
   drawBoard(game);
   drawNumPad(game);
   drawActionButtons(game);
-  drawTimer();
+  drawTimer(game);
 }
 
 void drawBoardGrid(Game *game, float tileSize)
@@ -98,6 +96,7 @@ void drawActionButtons(Game *game)
 {
   Vector2 numpadButtonSize = game->layout.numpadButtonSize;
   Vector2 actionButtonSize = game->layout.actionButtonSize;
+  Vector2 newGameButtonSize = game->layout.newGameButtonSize;
   Vector2 hudSize = game->layout.hudSize;
   float halfActionSize = game->layout.halfActionButtonSize;
 
@@ -160,6 +159,26 @@ void drawActionButtons(Game *game)
 
   DrawRectangleLinesEx(clearRect, 2.0, BLACK);
   DrawText("x", clear_x + halfActionSize - 5, clear_y + halfActionSize - 14, 35, BLACK);
+
+  // new game button
+  int newGameX = hudSize.x;
+  int newGameY = PADDING;
+
+  Rectangle newGameRect = {
+      .x = newGameX,
+      .y = newGameY,
+      .width = newGameButtonSize.x,
+      .height = newGameButtonSize.y};
+
+  game->newGameButton.top_left = (Vector2){newGameX, newGameY};
+  game->newGameButton.bottom_right = (Vector2){newGameX + newGameButtonSize.x, newGameY + newGameButtonSize.y};
+  Vector2 newGamePos = (Vector2){newGameRect.x, newGameRect.y};
+  Vector2 newGameSize = (Vector2){newGameRect.width, newGameRect.height};
+  game->newGameButton.color = game->newGameButton.selected ? LIGHTGRAY : WHITE;
+  DrawRectangleV(newGamePos, newGameSize, game->newGameButton.color);
+
+  DrawRectangleLinesEx(newGameRect, 2.0, BLACK);
+  DrawText("New Game", newGameX + halfActionSize - 5, newGameY + halfActionSize - 14, 35, BLACK);
 }
 
 void drawNumPad(Game *game)
@@ -203,22 +222,22 @@ void drawNumPad(Game *game)
   }
 }
 
-void drawTimer()
+void drawTimer(Game *game)
 {
   now = GetTime();
   if (now - prevTime >= 1.0f)
   {
     prevTime = now;
-    seconds++;
+    game->time.seconds++;
   }
-  if (seconds == 60)
+  if (game->time.seconds == 60)
   {
-    minutes++;
-    seconds = 0.0;
+    game->time.minutes++;
+    game->time.seconds = 0.0;
   }
 
-  const char *time = TextFormat("%02d:%02d", minutes, seconds);
-  // printf("Time: %02d\n", minutes);
+  const char *time = TextFormat("%02d:%02d", game->time.minutes, game->time.seconds);
+  // printf("Time: %02d\n", game->time.minutes);
   DrawText(time, PADDING, 10, 28, BLACK);
 }
 
