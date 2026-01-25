@@ -7,7 +7,7 @@
 #include "input.h"
 #include "stack.h"
 
-void initTime()
+void initRandomSeed()
 {
   srand(time(NULL));
 }
@@ -23,9 +23,11 @@ void initRenderLayout(RenderLayout *layout)
       boardEndFull + PADDING,
       WINDOW_WIDTH - PADDING};
 
-  int buttonSize = (layout->hudSize.y - layout->hudSize.x) / 3 - HUD_GAP;
+  int noGapButton = (layout->hudSize.y - layout->hudSize.x) / 3;
+  int buttonSize = noGapButton - HUD_GAP;
   layout->numpadButtonSize = (Vector2){buttonSize, buttonSize};
   layout->actionButtonSize = (Vector2){buttonSize / 2.0f, buttonSize / 2.0f};
+  layout->newGameButtonSize = (Vector2){noGapButton * 3.0f, buttonSize - 30};
 
   layout->tileSize = (layout->boardEnd - PADDING) / (float)TILES;
   layout->halfTileSize = layout->tileSize / 2.0f;
@@ -47,12 +49,23 @@ void gameInit(Game *game)
   game->undoButton = (Button){0};
   game->redoButton = (Button){0};
   game->clearCellButton = (Button){0};
+  game->newGameButton = (Button){0};
   game->undoButton.selected = false;
   game->redoButton.selected = false;
   game->clearCellButton.selected = false;
+  game->newGameButton.selected = false;
+
+  // Time
+  game->time.minutes = 0;
+  game->time.seconds = 0;
 
   initRenderLayout(&game->layout);
-  initTime();
+  generateNewGame(game);
+}
+
+void generateNewGame(Game *game)
+{
+  initRandomSeed();
   initBoard(game->board);
   solver(game->board);
   hideTiles(game->board, EASY);
@@ -113,4 +126,20 @@ void clearCell(Game *game)
     selectedTile->value = selectedTile->targetValue;
     selectedTile->hidden = true;
   }
+}
+
+void newGame(Game *game)
+{
+  game->time.minutes = 0;
+  game->time.seconds = 0;
+  generateNewGame(game);
+
+  game->currentTile.x = -1;
+  game->currentTile.y = -1;
+  game->currentTile.isSet = false;
+
+  freeStack(game->undoStack);
+  freeStack(game->redoStack);
+  game->undoStack = NULL;
+  game->redoStack = NULL;
 }

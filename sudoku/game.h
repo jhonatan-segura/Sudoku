@@ -30,6 +30,12 @@ typedef enum
   UNDO,
   REDO
 } PossibleMoves;
+
+typedef struct
+{
+  int minutes;
+  int seconds;
+} Time;
 typedef struct
 {
   Tile board[TILES][TILES];
@@ -40,13 +46,17 @@ typedef struct
   Button undoButton;
   Button redoButton;
   Button clearCellButton;
+  Button newGameButton;
   RenderLayout layout;
+  Time time;
 } Game;
 
-void initTime();
+void initRandomSeed();
+void generateNewGame(Game *game);
 void gameInit(Game *game);
 void gameUnload(Game *game);
 void moveStacks(Game *game, Stack **stack1, Stack **stack2, PossibleMoves move);
 void undo(Game *game, Stack **undo_stack, Stack **redo_stack);
 void redo(Game *game, Stack **undo_stack, Stack **redo_stack);
 void clearCell(Game *game);
+void newGame(Game *game);
