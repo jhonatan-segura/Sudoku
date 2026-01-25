@@ -1,5 +1,5 @@
 # Sudoku
 
-<img width="1192" height="695" alt="image" src="https://github.com/user-attachments/assets/fd9e1c8f-27db-402e-bfb7-3553b35f6d11" />
+<img width="1194" height="695" alt="image" src="https://github.com/user-attachments/assets/01cc0356-6252-4b11-9f73-3d94d0b8523b" />
 
 Sudoku game created using raylib and c
