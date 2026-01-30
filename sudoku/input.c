@@ -48,43 +48,57 @@ void handleKeyboard(Game *game)
   }
 }
 
-bool isButtonHovered(Button button, Vector2 mousePos) {
-  bool withinUndoButton = mousePos.x > button.top_left.x && mousePos.x < button.bottom_right.x &&
-                          mousePos.y > button.top_left.y && mousePos.y < button.bottom_right.y;
+bool isNumPadButtonHovered(NumPadButton *button, Vector2 mousePos) {
+  bool withinUndoButton = mousePos.x > button->top_left.x && mousePos.x < button->bottom_right.x &&
+                          mousePos.y > button->top_left.y && mousePos.y < button->bottom_right.y;
   if (withinUndoButton)
   {
-    button.isHovered = true;
+    button->isHovered = true;
   }
   else
   {
-    button.isHovered = false;
+    button->isHovered = false;
   }
   return withinUndoButton;
 }
 
-bool isButtonClicked(Button button, Vector2 mousePos) {
+bool isButtonHovered(Button *button, Vector2 mousePos) {
+  bool withinUndoButton = mousePos.x > button->top_left.x && mousePos.x < button->bottom_right.x &&
+                          mousePos.y > button->top_left.y && mousePos.y < button->bottom_right.y;
+  if (withinUndoButton)
+  {
+    button->isHovered = true;
+  }
+  else
+  {
+    button->isHovered = false;
+  }
+  return withinUndoButton;
+}
+
+bool isButtonClicked(Button *button, Vector2 mousePos) {
   return isButtonHovered(button, mousePos) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
 }
 
 void isActionClicked(Game *game, Vector2 mousePos)
 {
-  if (isButtonClicked(game->undoButton, mousePos))
+  if (isButtonClicked(&game->undoButton, mousePos))
   {
     undo(game, &game->undoStack, &game->redoStack);
   }
 
-  if (isButtonClicked(game->redoButton, mousePos))
+  if (isButtonClicked(&game->redoButton, mousePos))
   {
     redo(game, &game->undoStack, &game->redoStack);
   }
 
-  if (isButtonClicked(game->clearCellButton, mousePos))
+  if (isButtonClicked(&game->clearCellButton, mousePos))
   {
     clearCell(game);
     isSelectedValueCompleted(game);
   }
 
-  if (isButtonClicked(game->newGameButton, mousePos))
+  if (isButtonClicked(&game->newGameButton, mousePos))
   {
     newGame(game);
   }
@@ -97,16 +111,7 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
     for (int j = 0; j < NUM_PAD_TILES; j++)
     {
       Tile *selectedTile = &game->board[game->currentTile.x][game->currentTile.y];
-      bool withinNumPad = mousePos.x > game->numPad[i][j].top_left.x && mousePos.x < game->numPad[i][j].bottom_right.x &&
-                          mousePos.y > game->numPad[i][j].top_left.y && mousePos.y < game->numPad[i][j].bottom_right.y;
-      if (withinNumPad)
-      {
-        game->numPad[i][j].isHovered = true;
-      }
-      else
-      {
-        game->numPad[i][j].isHovered = false;
-      }
+      bool withinNumPad = isNumPadButtonHovered(&game->numPad[i][j], mousePos);
 
       if (withinNumPad &&
           game->currentTile.isSet &&
