@@ -122,7 +122,6 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
           IsMouseButtonReleased(MOUSE_LEFT_BUTTON) &&
           !game->numPad[i][j].isCompleted)
       {
-        // printf("numpad clicked at row %d, col %d, value %d\n", game->currentTile.x, game->currentTile.y, game->numPad[i][j].value);
         push(&game->undoStack, (Action){
                                    .newValue = game->numPad[i][j].value,
                                    .oldValue = selectedTile->value,
@@ -144,7 +143,8 @@ void isBoardPressed(Game *game, Vector2 mousePos)
 {
   int boardEnd = game->layout.boardEnd;
 
-  // Check condition
+  // Early return if left click isn't pressed or there isn't a tile selected
+  // Or mouse is hovering out of the board.
   if (!IsMouseButtonReleased(MOUSE_LEFT_BUTTON) ||
       (game->currentTile.isSet &&
        (mousePos.x > boardEnd || mousePos.x < PADDING ||

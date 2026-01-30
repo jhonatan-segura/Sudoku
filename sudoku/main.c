@@ -13,7 +13,6 @@ int main(void)
 
   SetTargetFPS(60);
 
-  // Main game loop
   while (!WindowShouldClose())
   {
     // Update
@@ -31,7 +30,6 @@ int main(void)
 
   // De-Initialization
   gameUnload(game);
-  //--------------------------------------------------------------------------------------
   CloseWindow(); // Close window and OpenGL context
 
   return 0;

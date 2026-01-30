@@ -44,16 +44,3 @@ void freeStack(Stack *stack)
     free(temp);
   }
 }
-
-void printStack(Stack *stack)
-{
-  printf("Elementos del stack:\n");
-  int count = 0;
-  while (stack != NULL)
-  {
-    printf("%d:\n", count++);
-    printf(" - Anterior %d\n", stack->action.oldValue);
-    printf(" - Nuevo %d\n", stack->action.newValue);
-    stack = stack->next;
-  }
-}

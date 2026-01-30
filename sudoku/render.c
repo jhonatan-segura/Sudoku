@@ -124,22 +124,18 @@ void drawActionButtons(Game *game)
   Vector2 hudSize = game->layout.hudSize;
   float halfActionSize = game->layout.halfActionButtonSize;
 
-  // Draw undo
   int undoX = hudSize.x;
   int undoY = PADDING + numpadButtonSize.x + HUD_GAP;
   drawButton((Vec2){undoX, undoY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->undoButton);
 
-  // redo
   int redoX = hudSize.x + actionButtonSize.x + HUD_GAP;
   int redoY = PADDING + numpadButtonSize.x + HUD_GAP;
   drawButton((Vec2){redoX, redoY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->redoButton);
 
-  // clearButton
   int clearX = hudSize.x + (actionButtonSize.x + HUD_GAP) * 2;
   int clearY = PADDING + numpadButtonSize.x + HUD_GAP;
   drawButton((Vec2){clearX, clearY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->clearCellButton);
 
-  // new game button
   drawButton((Vec2){hudSize.x, PADDING}, newGameButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->newGameButton);
 }
 
@@ -149,7 +145,6 @@ void drawNumPad(Game *game)
   Vector2 hudSize = game->layout.hudSize;
   float halfNumTileSize = game->layout.halfNumTileSize;
 
-  // Draw numpad
   int numpad_count = 1;
   for (int i = 0; i < NUM_PAD_TILES; i++)
   {
@@ -212,12 +207,4 @@ void drawTimer(Game *game)
 
   const char *time = TextFormat("%02d:%02d", game->time.minutes, game->time.seconds);
   DrawText(time, PADDING, 10, 28, BLACK);
-}
-
-void printValues(Stack *stack)
-{
-  while (stack != NULL)
-  {
-    stack = stack->next;
-  }
 }

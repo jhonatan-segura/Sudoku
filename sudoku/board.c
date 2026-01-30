@@ -234,7 +234,6 @@ void solver(Tile board[][TILES])
     }
     else
     {
-      // reset
       resetAttempts(board, &currentPos);
       board[currentPos.y][currentPos.x].value = 0;
       goBack(&currentPos);
