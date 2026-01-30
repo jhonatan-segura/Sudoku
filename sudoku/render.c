@@ -94,7 +94,7 @@ void drawBoard(Game *game)
   drawBoardDigits(game, tileSize, halfTileSize);
 }
 
-void drawButton(Vec2 buttonPosition, Vector2 buttonSize, Vec2 textPosition, Button *button, char *text)
+void drawButton(Vec2 buttonPosition, Vector2 buttonSize, Vec2 textPosition, Button *button)
 {
   int newGameX = buttonPosition.x;
   int newGameY = buttonPosition.y;
@@ -113,7 +113,7 @@ void drawButton(Vec2 buttonPosition, Vector2 buttonSize, Vec2 textPosition, Butt
   DrawRectangleV(newGamePos, newGameSize, button->color);
 
   DrawRectangleLinesEx(newGameRect, 2.0, BLACK);
-  DrawText(text, newGameX + textPosition.x, newGameY + textPosition.y, 35, BLACK);
+  DrawText(button->label, newGameX + textPosition.x, newGameY + textPosition.y, 35, BLACK);
 }
 
 void drawActionButtons(Game *game)
@@ -127,20 +127,20 @@ void drawActionButtons(Game *game)
   // Draw undo
   int undoX = hudSize.x;
   int undoY = PADDING + numpadButtonSize.x + HUD_GAP;
-  drawButton((Vec2){undoX, undoY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->undoButton, "<");
+  drawButton((Vec2){undoX, undoY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->undoButton);
 
   // redo
   int redoX = hudSize.x + actionButtonSize.x + HUD_GAP;
   int redoY = PADDING + numpadButtonSize.x + HUD_GAP;
-  drawButton((Vec2){redoX, redoY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->redoButton, ">");
+  drawButton((Vec2){redoX, redoY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->redoButton);
 
   // clearButton
   int clearX = hudSize.x + (actionButtonSize.x + HUD_GAP) * 2;
   int clearY = PADDING + numpadButtonSize.x + HUD_GAP;
-  drawButton((Vec2){clearX, clearY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->clearCellButton, "x");
+  drawButton((Vec2){clearX, clearY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->clearCellButton);
 
   // new game button
-  drawButton((Vec2){hudSize.x, PADDING}, newGameButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->newGameButton, "New Game");
+  drawButton((Vec2){hudSize.x, PADDING}, newGameButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->newGameButton);
 }
 
 void drawNumPad(Game *game)
