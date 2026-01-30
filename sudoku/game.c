@@ -50,15 +50,12 @@ void initNumPad(Game *game)
 
 void gameInit(Game *game)
 {
-  // --- current tile ---
   game->currentTile.x = -1;
   game->currentTile.y = -1;
 
-  // --- stacks ---
   game->undoStack = NULL;
   game->redoStack = NULL;
 
-  // --- buttons ---
   game->undoButton = (Button){0};
   game->undoButton.label = "<";
   game->redoButton = (Button){0};
@@ -72,7 +69,6 @@ void gameInit(Game *game)
   game->clearCellButton.isHovered = false;
   game->newGameButton.isHovered = false;
 
-  // Time
   game->time.minutes = 0;
   game->time.seconds = 0;
 
