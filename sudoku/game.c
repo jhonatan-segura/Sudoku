@@ -23,16 +23,29 @@ void initRenderLayout(RenderLayout *layout)
       boardEndFull + PADDING,
       WINDOW_WIDTH - PADDING};
 
-  int noGapButton = (layout->hudSize.y - layout->hudSize.x) / 3;
-  int buttonSize = noGapButton - HUD_GAP;
-  layout->numpadButtonSize = (Vector2){buttonSize, buttonSize};
-  layout->actionButtonSize = (Vector2){buttonSize / 2.0f, buttonSize / 2.0f};
-  layout->newGameButtonSize = (Vector2){noGapButton * 3.0f, buttonSize - 30};
+  int baseButtonSize = (layout->hudSize.y - layout->hudSize.x) / 3;
+  int numPadSize = baseButtonSize - HUD_GAP;
+  int actionSize = numPadSize / 2.0f;
+  int newGameSize = baseButtonSize * 3.0f - HUD_GAP;
+  layout->numpadButtonSize = (Vector2){numPadSize, numPadSize};
+  layout->actionButtonSize = (Vector2){actionSize, actionSize};
+  layout->newGameButtonSize = (Vector2){newGameSize, numPadSize - 30};
 
   layout->tileSize = (layout->boardEnd - PADDING) / (float)TILES;
   layout->halfTileSize = layout->tileSize / 2.0f;
   layout->halfNumTileSize = layout->numpadButtonSize.x / 2.0f;
   layout->halfActionButtonSize = layout->actionButtonSize.x / 2.0f;
+}
+
+void initNumPad(Game *game)
+{
+  for (int i = 0; i < NUM_PAD_TILES; i++)
+  {
+    for (int j = 0; j < NUM_PAD_TILES; j++)
+    {
+      game->numPad[i][j].isCompleted = false;
+    }
+  }
 }
 
 void gameInit(Game *game)
@@ -50,15 +63,16 @@ void gameInit(Game *game)
   game->redoButton = (Button){0};
   game->clearCellButton = (Button){0};
   game->newGameButton = (Button){0};
-  game->undoButton.selected = false;
-  game->redoButton.selected = false;
-  game->clearCellButton.selected = false;
-  game->newGameButton.selected = false;
+  game->undoButton.isHovered = false;
+  game->redoButton.isHovered = false;
+  game->clearCellButton.isHovered = false;
+  game->newGameButton.isHovered = false;
 
   // Time
   game->time.minutes = 0;
   game->time.seconds = 0;
 
+  initNumPad(game);
   initRenderLayout(&game->layout);
   generateNewGame(game);
 }
@@ -130,16 +144,42 @@ void clearCell(Game *game)
 
 void newGame(Game *game)
 {
-  game->time.minutes = 0;
-  game->time.seconds = 0;
-  generateNewGame(game);
-
-  game->currentTile.x = -1;
-  game->currentTile.y = -1;
-  game->currentTile.isSet = false;
+  gameInit(game);
 
   freeStack(game->undoStack);
   freeStack(game->redoStack);
   game->undoStack = NULL;
   game->redoStack = NULL;
+}
+
+void isPreviousValueCompleted(Game *game, int previousValue)
+{
+  Vec2i numPadPosition = getNumPadPosition(previousValue);
+
+  game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = isDigitCompleted(game, previousValue);
+}
+
+void isSelectedValueCompleted(Game *game)
+{
+  int currentValue = game->board[game->currentTile.x][game->currentTile.y].value;
+  Vec2i numPadPosition = getNumPadPosition(currentValue);
+
+  game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = isDigitCompleted(game, currentValue);
+}
+
+bool isDigitCompleted(Game *game, int digit)
+{
+  for (int i = 0; i < TILES; i++)
+  {
+    for (int j = 0; j < TILES; j++)
+    {
+      Tile currentTile = game->board[i][j];
+      if ((currentTile.value != digit && currentTile.targetValue == digit) ||
+          (currentTile.hidden && currentTile.targetValue == digit))
+      {
+        return false;
+      }
+    }
+  }
+  return true;
 }

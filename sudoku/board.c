@@ -56,11 +56,6 @@ bool isValidSector(Tile board[][TILES], Position *currentPos)
 
 bool isAllowedCell(Tile board[][TILES], Position *currentPos)
 {
-  // printf("value %d  ", currentPos.tempValue);
-  // printf("row %d  ", isValidRow());
-  // printf("col %d  ", isValidCol());
-  // printf("sector %d ", isValidSector());
-  // printf("notAttemptedYet %d\n", notAttemptedYet());
   return isValidRow(board, currentPos) && isValidCol(board, currentPos) && isValidSector(board, currentPos) && notAttemptedYet(board, currentPos);
 }
 

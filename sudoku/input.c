@@ -2,11 +2,11 @@
 #include "game.h"
 #include "stdio.h"
 #include "stack.h"
+#include "utils.h"
 
 void handleInput(Game *game)
 {
   Vector2 mousePos = GetMousePosition();
-  // printf("Mouse over %f, %f\n", mousePos.x, mousePos.y);
   isNumPadPressed(game, mousePos);
   isActionClicked(game, mousePos);
   isBoardPressed(game, mousePos);
@@ -16,20 +16,34 @@ void handleInput(Game *game)
 void handleKeyboard(Game *game)
 {
   int numbers[ALLOWED_NUMBERS] = {KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE};
+
+  Tile *selectedTile = &game->board[game->currentTile.x][game->currentTile.y];
+
   for (int i = 0; i < ALLOWED_NUMBERS; i++)
   {
     if (IsKeyPressed(numbers[i]) &&
         game->currentTile.isSet)
     {
       int value = numbers[i] - 48;
+      Vec2i numPadPrevPos = getNumPadPosition(selectedTile->value);
+      Vec2i numPadCurrPos = getNumPadPosition(value);
+
+      if (game->numPad[numPadCurrPos.x][numPadCurrPos.y].isCompleted)
+      {
+        return;
+      }
+
       push(&game->undoStack, (Action){
                                  .newValue = value,
-                                 .oldValue = game->board[game->currentTile.x][game->currentTile.y].value,
+                                 .oldValue = selectedTile->value,
                                  .newHidden = false,
-                                 .oldHidden = game->board[game->currentTile.x][game->currentTile.y].hidden,
+                                 .oldHidden = selectedTile->hidden,
                                  .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
-      game->board[game->currentTile.x][game->currentTile.y].value = value;
-      game->board[game->currentTile.x][game->currentTile.y].hidden = false;
+      selectedTile->value = value;
+      selectedTile->hidden = false;
+
+      game->numPad[numPadPrevPos.x][numPadPrevPos.y].isCompleted = isDigitCompleted(game, game->numPad[numPadPrevPos.x][numPadPrevPos.y].value);
+      game->numPad[numPadCurrPos.x][numPadCurrPos.y].isCompleted = isDigitCompleted(game, game->numPad[numPadCurrPos.x][numPadCurrPos.y].value);
     }
   }
 }
@@ -40,11 +54,11 @@ void isActionClicked(Game *game, Vector2 mousePos)
                           mousePos.y > game->undoButton.top_left.y && mousePos.y < game->undoButton.bottom_right.y;
   if (withinUndoButton)
   {
-    game->undoButton.selected = true;
+    game->undoButton.isHovered = true;
   }
   else
   {
-    game->undoButton.selected = false;
+    game->undoButton.isHovered = false;
   }
 
   if (withinUndoButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
@@ -56,11 +70,11 @@ void isActionClicked(Game *game, Vector2 mousePos)
                           mousePos.y > game->redoButton.top_left.y && mousePos.y < game->redoButton.bottom_right.y;
   if (withinRedoButton)
   {
-    game->redoButton.selected = true;
+    game->redoButton.isHovered = true;
   }
   else
   {
-    game->redoButton.selected = false;
+    game->redoButton.isHovered = false;
   }
 
   if (withinRedoButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
@@ -70,31 +84,32 @@ void isActionClicked(Game *game, Vector2 mousePos)
 
   // Action
   bool withinClearCellButton = mousePos.x > game->clearCellButton.top_left.x && mousePos.x < game->clearCellButton.bottom_right.x &&
-                          mousePos.y > game->clearCellButton.top_left.y && mousePos.y < game->clearCellButton.bottom_right.y;
+                               mousePos.y > game->clearCellButton.top_left.y && mousePos.y < game->clearCellButton.bottom_right.y;
   if (withinClearCellButton)
   {
-    game->clearCellButton.selected = true;
+    game->clearCellButton.isHovered = true;
   }
   else
   {
-    game->clearCellButton.selected = false;
+    game->clearCellButton.isHovered = false;
   }
 
   if (withinClearCellButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
   {
     clearCell(game);
+    isSelectedValueCompleted(game);
   }
 
   // New Game
   bool withinNewGameButton = mousePos.x > game->newGameButton.top_left.x && mousePos.x < game->newGameButton.bottom_right.x &&
-                          mousePos.y > game->newGameButton.top_left.y && mousePos.y < game->newGameButton.bottom_right.y;
+                             mousePos.y > game->newGameButton.top_left.y && mousePos.y < game->newGameButton.bottom_right.y;
   if (withinNewGameButton)
   {
-    game->newGameButton.selected = true;
+    game->newGameButton.isHovered = true;
   }
   else
   {
-    game->newGameButton.selected = false;
+    game->newGameButton.isHovered = false;
   }
 
   if (withinNewGameButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
@@ -109,31 +124,37 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
   {
     for (int j = 0; j < NUM_PAD_TILES; j++)
     {
+      Tile *selectedTile = &game->board[game->currentTile.x][game->currentTile.y];
       bool withinNumPad = mousePos.x > game->numPad[i][j].top_left.x && mousePos.x < game->numPad[i][j].bottom_right.x &&
                           mousePos.y > game->numPad[i][j].top_left.y && mousePos.y < game->numPad[i][j].bottom_right.y;
       if (withinNumPad)
       {
-        game->numPad[i][j].selected = true;
+        game->numPad[i][j].isHovered = true;
       }
       else
       {
-        game->numPad[i][j].selected = false;
+        game->numPad[i][j].isHovered = false;
       }
 
       if (withinNumPad &&
           game->currentTile.isSet &&
-          !game->board[game->currentTile.x][game->currentTile.y].fixed &&
-          IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+          !selectedTile->fixed &&
+          IsMouseButtonReleased(MOUSE_LEFT_BUTTON) &&
+          !game->numPad[i][j].isCompleted)
       {
-        printf("numpad clicked at row %d, col %d, value %d\n", game->currentTile.x, game->currentTile.y, game->numPad[i][j].value);
+        // printf("numpad clicked at row %d, col %d, value %d\n", game->currentTile.x, game->currentTile.y, game->numPad[i][j].value);
         push(&game->undoStack, (Action){
                                    .newValue = game->numPad[i][j].value,
-                                   .oldValue = game->board[game->currentTile.x][game->currentTile.y].value,
+                                   .oldValue = selectedTile->value,
                                    .newHidden = false,
-                                   .oldHidden = game->board[game->currentTile.x][game->currentTile.y].hidden,
+                                   .oldHidden = selectedTile->hidden,
                                    .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
-        game->board[game->currentTile.x][game->currentTile.y].value = game->numPad[i][j].value;
-        game->board[game->currentTile.x][game->currentTile.y].hidden = false;
+        int previousValue = selectedTile->value;
+        selectedTile->value = game->numPad[i][j].value;
+        selectedTile->hidden = false;
+
+        isPreviousValueCompleted(game, previousValue);
+        game->numPad[i][j].isCompleted = isDigitCompleted(game, game->numPad[i][j].value);
       }
     }
   }
