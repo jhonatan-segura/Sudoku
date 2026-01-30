@@ -15,6 +15,7 @@ typedef struct
   Color color;
   Vector2 top_left;
   Vector2 bottom_right;
+  char *label;
 } Button;
 
 typedef struct

@@ -48,71 +48,43 @@ void handleKeyboard(Game *game)
   }
 }
 
-void isActionClicked(Game *game, Vector2 mousePos)
-{
-  bool withinUndoButton = mousePos.x > game->undoButton.top_left.x && mousePos.x < game->undoButton.bottom_right.x &&
-                          mousePos.y > game->undoButton.top_left.y && mousePos.y < game->undoButton.bottom_right.y;
+bool isButtonHovered(Button button, Vector2 mousePos) {
+  bool withinUndoButton = mousePos.x > button.top_left.x && mousePos.x < button.bottom_right.x &&
+                          mousePos.y > button.top_left.y && mousePos.y < button.bottom_right.y;
   if (withinUndoButton)
   {
-    game->undoButton.isHovered = true;
+    button.isHovered = true;
   }
   else
   {
-    game->undoButton.isHovered = false;
+    button.isHovered = false;
   }
+  return withinUndoButton;
+}
 
-  if (withinUndoButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+bool isButtonClicked(Button button, Vector2 mousePos) {
+  return isButtonHovered(button, mousePos) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
+}
+
+void isActionClicked(Game *game, Vector2 mousePos)
+{
+  if (isButtonClicked(game->undoButton, mousePos))
   {
     undo(game, &game->undoStack, &game->redoStack);
   }
 
-  bool withinRedoButton = mousePos.x > game->redoButton.top_left.x && mousePos.x < game->redoButton.bottom_right.x &&
-                          mousePos.y > game->redoButton.top_left.y && mousePos.y < game->redoButton.bottom_right.y;
-  if (withinRedoButton)
-  {
-    game->redoButton.isHovered = true;
-  }
-  else
-  {
-    game->redoButton.isHovered = false;
-  }
-
-  if (withinRedoButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  if (isButtonClicked(game->redoButton, mousePos))
   {
     redo(game, &game->undoStack, &game->redoStack);
   }
 
-  // Action
-  bool withinClearCellButton = mousePos.x > game->clearCellButton.top_left.x && mousePos.x < game->clearCellButton.bottom_right.x &&
-                               mousePos.y > game->clearCellButton.top_left.y && mousePos.y < game->clearCellButton.bottom_right.y;
-  if (withinClearCellButton)
-  {
-    game->clearCellButton.isHovered = true;
-  }
-  else
-  {
-    game->clearCellButton.isHovered = false;
-  }
-
-  if (withinClearCellButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  if (isButtonClicked(game->clearCellButton, mousePos))
   {
     clearCell(game);
     isSelectedValueCompleted(game);
   }
 
-  // New Game
-  bool withinNewGameButton = mousePos.x > game->newGameButton.top_left.x && mousePos.x < game->newGameButton.bottom_right.x &&
-                             mousePos.y > game->newGameButton.top_left.y && mousePos.y < game->newGameButton.bottom_right.y;
-  if (withinNewGameButton)
-  {
-    game->newGameButton.isHovered = true;
-  }
-  else
-  {
-    game->newGameButton.isHovered = false;
-  }
-
-  if (withinNewGameButton && IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  if (isButtonClicked(game->newGameButton, mousePos))
   {
     newGame(game);
   }

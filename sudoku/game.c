@@ -60,9 +60,13 @@ void gameInit(Game *game)
 
   // --- buttons ---
   game->undoButton = (Button){0};
+  game->undoButton.label = "<";
   game->redoButton = (Button){0};
+  game->redoButton.label = ">";
   game->clearCellButton = (Button){0};
+  game->clearCellButton.label = "x";
   game->newGameButton = (Button){0};
+  game->newGameButton.label = "New Game";
   game->undoButton.isHovered = false;
   game->redoButton.isHovered = false;
   game->clearCellButton.isHovered = false;
