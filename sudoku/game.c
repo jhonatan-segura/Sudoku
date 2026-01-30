@@ -158,7 +158,7 @@ void isPreviousValueCompleted(Game *game, int previousValue)
 {
   Vec2i numPadPosition = getNumPadPosition(previousValue);
 
-  game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = isDigitCompleted(game, previousValue);
+  game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = false;
 }
 
 void isSelectedValueCompleted(Game *game)
