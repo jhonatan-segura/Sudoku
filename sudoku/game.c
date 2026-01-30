@@ -148,8 +148,6 @@ void newGame(Game *game)
 
   freeStack(game->undoStack);
   freeStack(game->redoStack);
-  game->undoStack = NULL;
-  game->redoStack = NULL;
 }
 
 void isPreviousValueCompleted(Game *game, int previousValue)
