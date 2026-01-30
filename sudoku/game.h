@@ -11,7 +11,7 @@
 
 typedef struct
 {
-  bool selected;
+  bool isHovered;
   Color color;
   Vector2 top_left;
   Vector2 bottom_right;
@@ -20,7 +20,8 @@ typedef struct
 typedef struct
 {
   int value;
-  bool selected;
+  bool isHovered;
+  bool isCompleted;
   Color color;
   Vector2 top_left;
   Vector2 bottom_right;
@@ -60,3 +61,6 @@ void undo(Game *game, Stack **undo_stack, Stack **redo_stack);
 void redo(Game *game, Stack **undo_stack, Stack **redo_stack);
 void clearCell(Game *game);
 void newGame(Game *game);
+void isPreviousValueCompleted(Game *game, int previousValue);
+void isSelectedValueCompleted(Game *game);
+bool isDigitCompleted(Game *game, int digit);

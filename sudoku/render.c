@@ -1,6 +1,7 @@
 #include "render.h"
 #include "game.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 float prevTime = 0.0f;
 float now = 0.0f;
@@ -42,14 +43,15 @@ void drawBoardDigits(Game *game, float tileSize, float halfTileSize)
   {
     for (int j = 0; j < TILES; j++)
     {
+      Tile *currentTile = &game->board[i][j];
       int x1 = j * tileSize + PADDING;
       int y1 = i * tileSize + PADDING;
       int x2 = (j + 1) * tileSize + PADDING;
       int y2 = (i + 1) * tileSize + PADDING;
-      game->board[i][j].top_left = (Vec2){x1, y1};
-      game->board[i][j].bottom_right = (Vec2){x2, y2};
+      currentTile->top_left = (Vec2){x1, y1};
+      currentTile->bottom_right = (Vec2){x2, y2};
 
-      if (game->board[i][j].value == selectedCell.value && !selectedCell.hidden && !game->board[i][j].hidden)
+      if (currentTile->value == selectedCell.value && !selectedCell.hidden && !currentTile->hidden)
       {
         Rectangle rect = {
             .x = x1,
@@ -69,15 +71,15 @@ void drawBoardDigits(Game *game, float tileSize, float halfTileSize)
         DrawRectangleLinesEx(rect, 3.0, BLUE);
       }
 
-      if (game->board[i][j].hidden)
+      if (currentTile->hidden)
       {
         continue;
       }
 
       int x_coord = x1 + halfTileSize - 5;
       int y_coord = y1 + TEXT_PADDING;
-      const char *cellText = TextFormat("%i", game->board[i][j].value);
-      Color textColor = game->board[i][j].fixed ? BLACK : GRAY;
+      const char *cellText = TextFormat("%i", currentTile->value);
+      Color textColor = currentTile->fixed ? BLACK : GRAY;
       DrawText(cellText, x_coord, y_coord, 28, textColor);
     }
   }
@@ -107,7 +109,7 @@ void drawButton(Vec2 buttonPosition, Vector2 buttonSize, Vec2 textPosition, Butt
   button->bottom_right = (Vector2){newGameX + buttonSize.x, newGameY + buttonSize.y};
   Vector2 newGamePos = (Vector2){newGameRect.x, newGameRect.y};
   Vector2 newGameSize = (Vector2){newGameRect.width, newGameRect.height};
-  button->color = button->selected ? LIGHTGRAY : WHITE;
+  button->color = button->isHovered ? LIGHTGRAY : WHITE;
   DrawRectangleV(newGamePos, newGameSize, button->color);
 
   DrawRectangleLinesEx(newGameRect, 2.0, BLACK);
@@ -159,10 +161,22 @@ void drawNumPad(Game *game)
       int x2 = x1 + numpadButtonSize.x;
       int y2 = y1 + numpadButtonSize.x;
 
-      game->numPad[i][j].top_left = (Vector2){x1, y1};
-      game->numPad[i][j].bottom_right = (Vector2){x2, y2};
-      game->numPad[i][j].value = numpad_count;
-      game->numPad[i][j].color = game->numPad[i][j].selected ? LIGHTGRAY : WHITE;
+      NumPadButton *currentButton = &game->numPad[i][j];
+      currentButton->top_left = (Vector2){x1, y1};
+      currentButton->bottom_right = (Vector2){x2, y2};
+      currentButton->value = numpad_count;
+      if (currentButton->isCompleted)
+      {
+        currentButton->color = GREEN;
+      }
+      else if (currentButton->isHovered)
+      {
+        currentButton->color = LIGHTGRAY;
+      }
+      else
+      {
+        currentButton->color = WHITE;
+      }
 
       Rectangle rect = {
           .x = x1,
@@ -171,7 +185,7 @@ void drawNumPad(Game *game)
           .height = numpadButtonSize.y};
       Vector2 rectPos = (Vector2){rect.x, rect.y};
       Vector2 rectSize = (Vector2){rect.width, rect.height};
-      DrawRectangleV(rectPos, rectSize, game->numPad[i][j].color);
+      DrawRectangleV(rectPos, rectSize, currentButton->color);
       DrawRectangleLinesEx(rect, 2.0, BLACK);
 
       const char *cellText = TextFormat("%i", numpad_count++);
@@ -197,7 +211,6 @@ void drawTimer(Game *game)
   }
 
   const char *time = TextFormat("%02d:%02d", game->time.minutes, game->time.seconds);
-  // printf("Time: %02d\n", game->time.minutes);
   DrawText(time, PADDING, 10, 28, BLACK);
 }
 
@@ -205,7 +218,6 @@ void printValues(Stack *stack)
 {
   while (stack != NULL)
   {
-    // printf("%d\n", stack->action);
     stack = stack->next;
   }
 }
