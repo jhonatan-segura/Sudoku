@@ -154,14 +154,14 @@ void newGame(Game *game)
   freeStack(game->redoStack);
 }
 
-void isPreviousValueCompleted(Game *game, int previousValue)
+void setPreviousValueNotCompleted(Game *game, int previousValue)
 {
   Vec2i numPadPosition = getNumPadPosition(previousValue);
 
   game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = false;
 }
 
-void isSelectedValueCompleted(Game *game)
+void setSelectedValueCompleted(Game *game)
 {
   int currentValue = game->board[game->currentTile.x][game->currentTile.y].value;
   Vec2i numPadPosition = getNumPadPosition(currentValue);
