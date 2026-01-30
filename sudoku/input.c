@@ -48,7 +48,8 @@ void handleKeyboard(Game *game)
   }
 }
 
-bool isNumPadButtonHovered(NumPadButton *button, Vector2 mousePos) {
+bool isNumPadButtonHovered(NumPadButton *button, Vector2 mousePos)
+{
   bool withinUndoButton = mousePos.x > button->top_left.x && mousePos.x < button->bottom_right.x &&
                           mousePos.y > button->top_left.y && mousePos.y < button->bottom_right.y;
   if (withinUndoButton)
@@ -62,7 +63,8 @@ bool isNumPadButtonHovered(NumPadButton *button, Vector2 mousePos) {
   return withinUndoButton;
 }
 
-bool isButtonHovered(Button *button, Vector2 mousePos) {
+bool isButtonHovered(Button *button, Vector2 mousePos)
+{
   bool withinUndoButton = mousePos.x > button->top_left.x && mousePos.x < button->bottom_right.x &&
                           mousePos.y > button->top_left.y && mousePos.y < button->bottom_right.y;
   if (withinUndoButton)
@@ -76,7 +78,8 @@ bool isButtonHovered(Button *button, Vector2 mousePos) {
   return withinUndoButton;
 }
 
-bool isButtonClicked(Button *button, Vector2 mousePos) {
+bool isButtonClicked(Button *button, Vector2 mousePos)
+{
   return isButtonHovered(button, mousePos) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
 }
 
@@ -95,7 +98,7 @@ void isActionClicked(Game *game, Vector2 mousePos)
   if (isButtonClicked(&game->clearCellButton, mousePos))
   {
     clearCell(game);
-    isSelectedValueCompleted(game);
+    setSelectedValueCompleted(game);
   }
 
   if (isButtonClicked(&game->newGameButton, mousePos))
@@ -130,7 +133,7 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
         selectedTile->value = game->numPad[i][j].value;
         selectedTile->hidden = false;
 
-        isPreviousValueCompleted(game, previousValue);
+        setPreviousValueNotCompleted(game, previousValue);
         game->numPad[i][j].isCompleted = isDigitCompleted(game, game->numPad[i][j].value);
       }
     }
