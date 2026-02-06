@@ -259,7 +259,8 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText)
   };
   game->gameOverButton.top_left = (Vector2) {buttonX, buttonY};
   game->gameOverButton.bottom_right = (Vector2) {buttonWidth + buttonX, buttonHeight + buttonY};
-  DrawRectangleRounded(buttonPosition, 0.7, 30, RAYWHITE);
+  Color buttonColor = game->gameOverButton.isHovered ? LIGHTGRAY : RAYWHITE;
+  DrawRectangleRounded(buttonPosition, 0.7, 30, buttonColor);
   DrawRectangleRoundedLinesEx(buttonPosition, 0.7, 30, LINE_THICKNESS, BLACK);
 
   const int titleX = getTextPosition(screenWidth, title);
