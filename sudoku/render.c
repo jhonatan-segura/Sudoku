@@ -220,7 +220,7 @@ void drawTimer(Game *game)
 
 void drawErrors(Game *game)
 {
-  const char *errorText = TextFormat("Errores: %d/%d", game->errorCount, game->maximumErrorsAllowed);
+  const char *errorText = TextFormat("Errors: %d/%d", game->errorCount, game->maximumErrorsAllowed);
   const int textXPos = MeasureText(errorText, 28);
   DrawText(errorText, game->layout.boardEnd - textXPos, 10, 28, BLACK);
 }
