@@ -35,6 +35,9 @@ typedef struct
 void initRandomSeed();
 bool isValidCol(Tile board[][TILES], Position *currentPos);
 bool isValidRow(Tile board[][TILES], Position *currentPos);
+bool isValidSector(Tile board[][TILES], Position *currentPos);
+bool isAllowedCell(Tile board[][TILES], Position *currentPos);
+bool isAllowedCellCreatingBoard(Tile board[][TILES], Position *currentPos);
 bool notAttemptedYet(Tile board[][TILES], Position *currentPos);
 bool fillCell(Tile board[][TILES], Position *currentPos);
 void resetAttempts(Tile board[][TILES], Position *currentPos);

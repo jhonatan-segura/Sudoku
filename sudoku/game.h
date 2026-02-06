@@ -49,8 +49,12 @@ typedef struct
   Button redoButton;
   Button clearCellButton;
   Button newGameButton;
+  Button gameOverButton;
   RenderLayout layout;
   Time time;
+  int errorCount;
+  int maximumErrorsAllowed;
+  bool isGameOver;
 } Game;
 
 void initRandomSeed();
@@ -65,3 +69,4 @@ void newGame(Game *game);
 void setPreviousValueNotCompleted(Game *game, int previousValue);
 void setSelectedValueCompleted(Game *game);
 bool isDigitCompleted(Game *game, int digit);
+bool checkErrors(Game *game);

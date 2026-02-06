@@ -15,7 +15,7 @@ bool isValidRow(Tile board[][TILES], Position *currentPos)
 {
   for (int j = 0; j < TILES; j++)
   {
-    if (board[currentPos->y][j].value == currentPos->tempValue)
+    if (board[currentPos->x][j].value == currentPos->tempValue && j != currentPos->y)
     {
       return false;
     }
@@ -27,7 +27,7 @@ bool isValidCol(Tile board[][TILES], Position *currentPos)
 {
   for (int i = 0; i < TILES; i++)
   {
-    if (board[i][currentPos->x].value == currentPos->tempValue)
+    if (board[i][currentPos->y].value == currentPos->tempValue && i != currentPos->x)
     {
       return false;
     }
@@ -37,15 +37,15 @@ bool isValidCol(Tile board[][TILES], Position *currentPos)
 
 bool isValidSector(Tile board[][TILES], Position *currentPos)
 {
-  int lowV = (currentPos->y / 3) * 3;
+  int lowV = (currentPos->x / 3) * 3;
   int highV = lowV + 2;
-  int lowH = (currentPos->x / 3) * 3;
+  int lowH = (currentPos->y / 3) * 3;
   int highH = lowH + 2;
-  for (int y = lowV; y <= highV; y++)
+  for (int x = lowV; x <= highV; x++)
   {
-    for (int x = lowH; x <= highH; x++)
+    for (int y = lowH; y <= highH; y++)
     {
-      if (board[y][x].value == currentPos->tempValue)
+      if (board[x][y].value == currentPos->tempValue && x != currentPos->x && y != currentPos->y)
       {
         return false;
       }
@@ -56,36 +56,41 @@ bool isValidSector(Tile board[][TILES], Position *currentPos)
 
 bool isAllowedCell(Tile board[][TILES], Position *currentPos)
 {
-  return isValidRow(board, currentPos) && isValidCol(board, currentPos) && isValidSector(board, currentPos) && notAttemptedYet(board, currentPos);
+  return isValidRow(board, currentPos) && isValidCol(board, currentPos) && isValidSector(board, currentPos);
+}
+
+bool isAllowedCellCreatingBoard(Tile board[][TILES], Position *currentPos)
+{
+  return isAllowedCell(board, currentPos) && notAttemptedYet(board, currentPos);
 }
 
 void goBack(Position *currentPos)
 {
-  if (currentPos->x == 0)
+  if (currentPos->y == 0)
   {
-    currentPos->y--;
-    currentPos->x = TILES - 1;
+    currentPos->x--;
+    currentPos->y = TILES - 1;
   }
   else
   {
-    currentPos->x--;
+    currentPos->y--;
   }
 }
 
 bool goForth(Position *currentPos)
 {
-  if (currentPos->x == (TILES - 1) && currentPos->y == (TILES - 1))
+  if (currentPos->y == (TILES - 1) && currentPos->x == (TILES - 1))
   {
     return true;
   }
-  if (currentPos->x != (TILES - 1))
+  if (currentPos->y != (TILES - 1))
   {
-    currentPos->x++;
+    currentPos->y++;
   }
   else
   {
-    currentPos->x = 0;
-    currentPos->y++;
+    currentPos->y = 0;
+    currentPos->x++;
   }
   return false;
 }
@@ -94,14 +99,14 @@ void setAttempt(Tile board[][TILES], Position *currentPos)
 {
   for (int x = 0; x < TILES; x++)
   {
-    if (board[currentPos->y][currentPos->x].attempts[x] == currentPos->tempValue)
+    if (board[currentPos->x][currentPos->y].attempts[x] == currentPos->tempValue)
     {
       break;
     }
 
-    if (board[currentPos->y][currentPos->x].attempts[x] == 0)
+    if (board[currentPos->x][currentPos->y].attempts[x] == 0)
     {
-      board[currentPos->y][currentPos->x].attempts[x] = currentPos->tempValue;
+      board[currentPos->x][currentPos->y].attempts[x] = currentPos->tempValue;
       break;
     }
   }
@@ -128,7 +133,7 @@ bool notAttemptedYet(Tile board[][TILES], Position *currentPos)
 {
   for (int x = 0; x < TILES; x++)
   {
-    if (board[currentPos->y][currentPos->x].attempts[x] == currentPos->tempValue)
+    if (board[currentPos->x][currentPos->y].attempts[x] == currentPos->tempValue)
     {
       return false;
     }
@@ -159,7 +164,7 @@ void resetAttempts(Tile board[][TILES], Position *currentPos)
 {
   for (int x = 0; x < TILES; x++)
   {
-    board[currentPos->y][currentPos->x].attempts[x] = 0;
+    board[currentPos->x][currentPos->y].attempts[x] = 0;
   }
 }
 
@@ -178,7 +183,7 @@ bool isRandomValueValid(Tile board[][TILES], Position *currentPos)
     }
     currentPos->tempValue = randValue(1, 9);
     setAttemptCurrentPos(currentPos);
-  } while (!isAllowedCell(board, currentPos));
+  } while (!isAllowedCellCreatingBoard(board, currentPos));
   return true;
 }
 
@@ -210,8 +215,8 @@ bool fillCell(Tile board[][TILES], Position *currentPos)
   if (isValid)
   {
     setAttempt(board, currentPos);
-    board[currentPos->y][currentPos->x].value = currentPos->tempValue;
-    board[currentPos->y][currentPos->x].targetValue = currentPos->tempValue;
+    board[currentPos->x][currentPos->y].value = currentPos->tempValue;
+    board[currentPos->x][currentPos->y].targetValue = currentPos->tempValue;
     return true;
   }
   return false;
@@ -235,7 +240,7 @@ void solver(Tile board[][TILES])
     else
     {
       resetAttempts(board, &currentPos);
-      board[currentPos.y][currentPos.x].value = 0;
+      board[currentPos.x][currentPos.y].value = 0;
       goBack(&currentPos);
     }
   }
@@ -261,11 +266,11 @@ void hideTiles(Tile board[][TILES], int numTiles)
   {
     x = randValue(0, 8);
     y = randValue(0, 8);
-    if (board[y][x].hidden == false)
+    if (board[x][y].hidden == false)
     {
       --numTiles;
     }
-    board[y][x].hidden = true;
-    board[y][x].fixed = false;
+    board[x][y].hidden = true;
+    board[x][y].fixed = false;
   } while (numTiles > 0);
 }
