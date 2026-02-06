@@ -220,7 +220,7 @@ void drawTimer(Game *game)
 
 void drawErrors(Game *game)
 {
-  const char *errorText = TextFormat("Errores: %d/%d", game->errorCount, game->maximumErrorsAllowed);
+  const char *errorText = TextFormat("Errors: %d/%d", game->errorCount, game->maximumErrorsAllowed);
   const int textXPos = MeasureText(errorText, 28);
   DrawText(errorText, game->layout.boardEnd - textXPos, 10, 28, BLACK);
 }
@@ -259,7 +259,8 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText)
   };
   game->gameOverButton.top_left = (Vector2) {buttonX, buttonY};
   game->gameOverButton.bottom_right = (Vector2) {buttonWidth + buttonX, buttonHeight + buttonY};
-  DrawRectangleRounded(buttonPosition, 0.7, 30, RAYWHITE);
+  Color buttonColor = game->gameOverButton.isHovered ? LIGHTGRAY : RAYWHITE;
+  DrawRectangleRounded(buttonPosition, 0.7, 30, buttonColor);
   DrawRectangleRoundedLinesEx(buttonPosition, 0.7, 30, LINE_THICKNESS, BLACK);
 
   const int titleX = getTextPosition(screenWidth, title);
