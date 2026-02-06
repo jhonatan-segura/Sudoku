@@ -13,3 +13,4 @@ typedef struct
 } Vec2i;
 
 Vec2i getNumPadPosition(int value);
+int getTextPosition(int screenWidth, char* title);

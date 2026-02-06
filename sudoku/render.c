@@ -12,6 +12,12 @@ void drawGame(Game *game)
   drawNumPad(game);
   drawActionButtons(game);
   drawTimer(game);
+  drawErrors(game);
+
+  if (game->isGameOver)
+  {
+    drawPopUp(game, "Game Over", "You've made 3 mistakes!", "Try Again");
+  }
 }
 
 void drawBoardGrid(Game *game, float tileSize)
@@ -193,18 +199,79 @@ void drawNumPad(Game *game)
 
 void drawTimer(Game *game)
 {
-  now = GetTime();
-  if (now - prevTime >= 1.0f)
+  if (!game->isGameOver)
   {
-    prevTime = now;
-    game->time.seconds++;
-  }
-  if (game->time.seconds == 60)
-  {
-    game->time.minutes++;
-    game->time.seconds = 0.0;
+    now = GetTime();
+    if (now - prevTime >= 1.0f)
+    {
+      prevTime = now;
+      game->time.seconds++;
+    }
+    if (game->time.seconds == 60)
+    {
+      game->time.minutes++;
+      game->time.seconds = 0.0;
+    }
   }
 
   const char *time = TextFormat("%02d:%02d", game->time.minutes, game->time.seconds);
   DrawText(time, PADDING, 10, 28, BLACK);
+}
+
+void drawErrors(Game *game)
+{
+  const char *errorText = TextFormat("Errores: %d/%d", game->errorCount, game->maximumErrorsAllowed);
+  const int textXPos = MeasureText(errorText, 28);
+  DrawText(errorText, game->layout.boardEnd - textXPos, 10, 28, BLACK);
+}
+
+void drawPopUp(Game *game, char *title, char *body, char *buttonText)
+{
+  const int screenWidth = GetScreenWidth();
+  const int screenHeight = GetScreenHeight();
+  Color translucidBackground = (Color){0, 0, 0, 150};
+
+  DrawRectangle(0, 0, screenWidth, screenHeight, translucidBackground);
+
+  const int popUpWidth = 400;
+  const int popUpHeigth = 250;
+  const int backgroundX = (screenWidth / 2) - (popUpWidth / 2);
+  const int backgroundY = (screenHeight / 2) - (popUpHeigth / 2);
+  Rectangle backgroundPosition = (Rectangle){
+      backgroundX,
+      backgroundY,
+      popUpWidth,
+      popUpHeigth};
+  DrawRectangleRounded(backgroundPosition, 0.1, 30, RAYWHITE);
+  DrawRectangleRoundedLinesEx(backgroundPosition, 0.1, 30, LINE_THICKNESS, BLACK);
+
+  // Draw button
+  const int buttonVerticalDisplacement = 70;
+  const int buttonWidth = 200;
+  const int buttonHeight = 30;
+  const int buttonX = (screenWidth / 2) - (buttonWidth / 2);
+  const int buttonY = (screenHeight / 2) + buttonVerticalDisplacement;
+  Rectangle buttonPosition = (Rectangle){
+      game->gameOverButton.top_left.x,
+      game->gameOverButton.top_left.y,
+      buttonWidth,
+      buttonHeight
+  };
+  game->gameOverButton.top_left = (Vector2) {buttonX, buttonY};
+  game->gameOverButton.bottom_right = (Vector2) {buttonWidth + buttonX, buttonHeight + buttonY};
+  DrawRectangleRounded(buttonPosition, 0.7, 30, RAYWHITE);
+  DrawRectangleRoundedLinesEx(buttonPosition, 0.7, 30, LINE_THICKNESS, BLACK);
+
+  const int titleX = getTextPosition(screenWidth, title);
+  const int titleY = (screenHeight / 2) - 90;
+
+  const int bodyX = getTextPosition(screenWidth, body);
+  const int bodyY = (screenHeight / 2) - 10;
+
+  const int buttonTextX = getTextPosition(screenWidth, buttonText);
+  const int buttonTextY = game->gameOverButton.top_left.y;
+
+  DrawText(title, titleX, titleY, 28, BLACK);
+  DrawText(body, bodyX, bodyY, 26, BLACK);
+  DrawText(buttonText, buttonTextX, buttonTextY, 26, BLACK);
 }

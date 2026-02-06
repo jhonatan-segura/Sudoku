@@ -6,6 +6,7 @@
 #include "render.h"
 #include "input.h"
 #include "stack.h"
+#include "board.h"
 
 void initRandomSeed()
 {
@@ -64,13 +65,20 @@ void gameInit(Game *game)
   game->clearCellButton.label = "x";
   game->newGameButton = (Button){0};
   game->newGameButton.label = "New Game";
+  game->gameOverButton = (Button){0};
+  game->gameOverButton.label = "New Game";
   game->undoButton.isHovered = false;
   game->redoButton.isHovered = false;
   game->clearCellButton.isHovered = false;
   game->newGameButton.isHovered = false;
+  game->gameOverButton.isHovered = false;
 
   game->time.minutes = 0;
   game->time.seconds = 0;
+
+  game->errorCount = 0;
+  game->maximumErrorsAllowed = 3;
+  game->isGameOver = false;
 
   initNumPad(game);
   initRenderLayout(&game->layout);
@@ -180,4 +188,18 @@ bool isDigitCompleted(Game *game, int digit)
     }
   }
   return true;
+}
+
+bool checkErrors(Game *game)
+{
+  const bool isAllowed = isAllowedCell(game->board, &game->currentTile);
+  if (!isAllowed)
+  {
+    game->errorCount++;
+  }
+  if (game->errorCount == 3)
+  {
+    game->isGameOver = true;
+  }
+  return isAllowed;
 }

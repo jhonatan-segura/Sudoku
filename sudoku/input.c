@@ -7,10 +7,15 @@
 void handleInput(Game *game)
 {
   Vector2 mousePos = GetMousePosition();
-  isNumPadPressed(game, mousePos);
+
+  if (!game->isGameOver)
+  {
+    isNumPadPressed(game, mousePos);
+    isBoardPressed(game, mousePos);
+    handleKeyboard(game);
+  }
+
   isActionClicked(game, mousePos);
-  isBoardPressed(game, mousePos);
-  handleKeyboard(game);
 }
 
 void handleKeyboard(Game *game)
@@ -40,10 +45,14 @@ void handleKeyboard(Game *game)
                                  .oldHidden = selectedTile->hidden,
                                  .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
       selectedTile->value = value;
+      game->currentTile.tempValue = value;
       selectedTile->hidden = false;
 
       game->numPad[numPadPrevPos.x][numPadPrevPos.y].isCompleted = isDigitCompleted(game, game->numPad[numPadPrevPos.x][numPadPrevPos.y].value);
       game->numPad[numPadCurrPos.x][numPadCurrPos.y].isCompleted = isDigitCompleted(game, game->numPad[numPadCurrPos.x][numPadCurrPos.y].value);
+
+      // Check errors
+      checkErrors(game);
     }
   }
 }
@@ -85,6 +94,16 @@ bool isButtonClicked(Button *button, Vector2 mousePos)
 
 void isActionClicked(Game *game, Vector2 mousePos)
 {
+  if (isButtonClicked(&game->gameOverButton, mousePos))
+  {
+    newGame(game);
+  }
+
+  if (game->isGameOver)
+  {
+    return;
+  }
+
   if (isButtonClicked(&game->undoButton, mousePos))
   {
     undo(game, &game->undoStack, &game->redoStack);
@@ -130,10 +149,14 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
                                    .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
         int previousValue = selectedTile->value;
         selectedTile->value = game->numPad[i][j].value;
+        game->currentTile.tempValue = game->numPad[i][j].value;
         selectedTile->hidden = false;
 
         setPreviousValueNotCompleted(game, previousValue);
         game->numPad[i][j].isCompleted = isDigitCompleted(game, game->numPad[i][j].value);
+
+        // Check errors
+        checkErrors(game);
       }
     }
   }

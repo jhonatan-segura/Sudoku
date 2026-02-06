@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "raylib.h"
 
 Vec2i getNumPadPosition(int value)
 {
@@ -46,5 +47,10 @@ Vec2i getNumPadPosition(int value)
     break;
   }
 
-  return (Vec2i) {x, y};
+  return (Vec2i){x, y};
+}
+
+int getTextPosition(int screenWidth, char *title)
+{
+  return (screenWidth / 2) - (MeasureText(title, 28) / 2);
 }
