@@ -44,6 +44,7 @@ void handleKeyboard(Game *game)
                                  .newHidden = false,
                                  .oldHidden = selectedTile->hidden,
                                  .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
+      bool previousIsHidden = selectedTile->hidden;
       selectedTile->value = value;
       game->currentTile.tempValue = value;
       selectedTile->hidden = false;
@@ -52,7 +53,15 @@ void handleKeyboard(Game *game)
       game->numPad[numPadCurrPos.x][numPadCurrPos.y].isCompleted = isDigitCompleted(game, game->numPad[numPadCurrPos.x][numPadCurrPos.y].value);
 
       // Check errors
-      checkErrors(game);
+      bool isValid = checkErrors(game);
+      if (isValid && (previousIsHidden || game->visibleTilesCount == TOTAL_TILES - 1))
+      {
+        game->visibleTilesCount++;
+      }
+      if (game->visibleTilesCount == TOTAL_TILES)
+      {
+        checkGameCompleted(game);
+      }
     }
   }
 }
@@ -148,6 +157,7 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
                                    .oldHidden = selectedTile->hidden,
                                    .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
         int previousValue = selectedTile->value;
+        bool previousIsHidden = selectedTile->hidden;
         selectedTile->value = game->numPad[i][j].value;
         game->currentTile.tempValue = game->numPad[i][j].value;
         selectedTile->hidden = false;
@@ -156,7 +166,15 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
         game->numPad[i][j].isCompleted = isDigitCompleted(game, game->numPad[i][j].value);
 
         // Check errors
-        checkErrors(game);
+        bool isValid = checkErrors(game);
+        if (isValid && (previousIsHidden || game->visibleTilesCount == TOTAL_TILES - 1))
+        {
+          game->visibleTilesCount++;
+        }
+        if (game->visibleTilesCount == TOTAL_TILES)
+        {
+          checkGameCompleted(game);
+        }
       }
     }
   }

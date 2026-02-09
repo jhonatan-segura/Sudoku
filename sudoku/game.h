@@ -5,6 +5,7 @@
 #include "layout.h"
 #include "game_types.h"
 
+#define TOTAL_TILES 81
 #define EASY 40
 #define MEDIUM 50
 #define HARD 60
@@ -53,8 +54,10 @@ typedef struct
   RenderLayout layout;
   Time time;
   int errorCount;
+  int visibleTilesCount;
   int maximumErrorsAllowed;
   bool isGameOver;
+  bool isGameCompleted;
 } Game;
 
 void initRandomSeed();
@@ -70,3 +73,4 @@ void setPreviousValueNotCompleted(Game *game, int previousValue);
 void setSelectedValueCompleted(Game *game);
 bool isDigitCompleted(Game *game, int digit);
 bool checkErrors(Game *game);
+void checkGameCompleted(Game *game);

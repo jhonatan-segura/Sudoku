@@ -18,6 +18,11 @@ void drawGame(Game *game)
   {
     drawPopUp(game, "Game Over", "You've made 3 mistakes!", "Try Again");
   }
+
+  if (game->isGameCompleted)
+  {
+    drawPopUp(game, "Sudoku Solved!", "You've completed the sudoku!", "New Game");
+  }
 }
 
 void drawBoardGrid(Game *game, float tileSize)
@@ -85,7 +90,14 @@ void drawBoardDigits(Game *game, float tileSize, float halfTileSize)
       int x_coord = x1 + halfTileSize - 5;
       int y_coord = y1 + TEXT_PADDING;
       const char *cellText = TextFormat("%i", currentTile->value);
-      Color textColor = currentTile->fixed ? BLACK : GRAY;
+      Color textColor = BLACK;
+      if (currentTile->fixed) {
+        textColor = BLACK;
+      } else if (!currentTile->isValid) {
+        textColor = RED;
+      } else {
+        textColor = GRAY;
+      }
       DrawText(cellText, x_coord, y_coord, 28, textColor);
     }
   }
@@ -199,7 +211,7 @@ void drawNumPad(Game *game)
 
 void drawTimer(Game *game)
 {
-  if (!game->isGameOver)
+  if (!game->isGameOver && !game->isGameCompleted)
   {
     now = GetTime();
     if (now - prevTime >= 1.0f)
@@ -220,7 +232,7 @@ void drawTimer(Game *game)
 
 void drawErrors(Game *game)
 {
-  const char *errorText = TextFormat("Errors: %d/%d", game->errorCount, game->maximumErrorsAllowed);
+  const char *errorText = TextFormat("Mistakes: %d/%d", game->errorCount, game->maximumErrorsAllowed);
   const int textXPos = MeasureText(errorText, 28);
   DrawText(errorText, game->layout.boardEnd - textXPos, 10, 28, BLACK);
 }
@@ -233,7 +245,7 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText)
 
   DrawRectangle(0, 0, screenWidth, screenHeight, translucidBackground);
 
-  const int popUpWidth = 400;
+  const int popUpWidth = 420;
   const int popUpHeigth = 250;
   const int backgroundX = (screenWidth / 2) - (popUpWidth / 2);
   const int backgroundY = (screenHeight / 2) - (popUpHeigth / 2);
