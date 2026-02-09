@@ -255,6 +255,7 @@ void initBoard(Tile board[][TILES])
       board[i][j].value = 0;
       board[i][j].hidden = false;
       board[i][j].fixed = true;
+      board[i][j].isValid = true;
     }
   }
 }

@@ -79,6 +79,7 @@ void gameInit(Game *game)
   game->errorCount = 0;
   game->maximumErrorsAllowed = 3;
   game->isGameOver = false;
+  game->isGameCompleted = false;
 
   initNumPad(game);
   initRenderLayout(&game->layout);
@@ -91,6 +92,7 @@ void generateNewGame(Game *game)
   initBoard(game->board);
   solver(game->board);
   hideTiles(game->board, EASY);
+  game->visibleTilesCount = TOTAL_TILES - EASY;
   printBoard(game->board);
 }
 
@@ -192,14 +194,33 @@ bool isDigitCompleted(Game *game, int digit)
 
 bool checkErrors(Game *game)
 {
-  const bool isAllowed = isAllowedCell(game->board, &game->currentTile);
+  bool isAllowed = isAllowedCell(game->board, &game->currentTile);
   if (!isAllowed)
   {
+    game->board[game->currentTile.x][game->currentTile.y].isValid = false;
     game->errorCount++;
+  } else {
+    game->board[game->currentTile.x][game->currentTile.y].isValid = true;
   }
   if (game->errorCount == 3)
   {
     game->isGameOver = true;
   }
   return isAllowed;
+}
+
+void checkGameCompleted(Game *game)
+{
+  for (int i = 0; i < TILES; i++)
+  {
+    for (int j = 0; j < TILES; j++)
+    {
+      Tile currentTile = game->board[i][j];
+      if (currentTile.value != currentTile.targetValue)
+      {
+        return;
+      }
+    }
+  }
+  game->isGameCompleted = true;
 }

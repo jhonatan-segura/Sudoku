@@ -19,6 +19,7 @@ typedef struct
   int attempts[TILES];
   bool hidden;
   bool fixed;
+  bool isValid;
   Vec2 top_left;
   Vec2 bottom_right;
 } Tile;
