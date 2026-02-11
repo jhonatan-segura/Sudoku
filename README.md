@@ -12,7 +12,6 @@ Error screen
 # To Do List.
 
 - Green numpad tile isn't altered by undo or redo.
-- Add a dialog to show winning.
 - Add difficulty selector.
 - Add pause button.
 - Add a score.
