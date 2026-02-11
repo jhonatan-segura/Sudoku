@@ -7,7 +7,10 @@
 
 void handleInput(Game *game);
 void isBoardPressed(Game *game, Vector2 mousePos);
-void handleKeyboard(Game *game);
+void handleKeyboardDigits(Game *game);
+void handlePause(Game *game);
+void handleUnpauseGame(Game *game);
 void isNumPadPressed(Game *game, Vector2 mousePos);
-void isActionClicked(Game *game, Vector2 mousePos);
+void handleMouse(Game *game, Vector2 mousePos);
 bool isDigitCompleted(Game *game, int digit);
+bool isTileHovered(Game *game, int x, int y, Vector2 mousePos);

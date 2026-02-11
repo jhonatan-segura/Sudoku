@@ -13,4 +13,5 @@ typedef struct
     Vector2 numpadButtonSize;
     Vector2 actionButtonSize;
     Vector2 newGameButtonSize;
+    Vector2 pauseButtonSize;
 } RenderLayout;

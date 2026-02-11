@@ -50,7 +50,7 @@ Vec2i getNumPadPosition(int value)
   return (Vec2i){x, y};
 }
 
-int getTextPosition(int screenWidth, char *title)
+int getTextPosition(int screenWidth, char *title, int fontSize)
 {
-  return (screenWidth / 2) - (MeasureText(title, 28) / 2);
+  return (screenWidth / 2) - (MeasureText(title, fontSize) / 2);
 }
