@@ -31,6 +31,7 @@ void initRenderLayout(RenderLayout *layout)
   layout->numpadButtonSize = (Vector2){numPadSize, numPadSize};
   layout->actionButtonSize = (Vector2){actionSize, actionSize};
   layout->newGameButtonSize = (Vector2){newGameSize, numPadSize - 30};
+  layout->pauseButtonSize = (Vector2){28, 28};
 
   layout->tileSize = (layout->boardEnd - PADDING) / (float)TILES;
   layout->halfTileSize = layout->tileSize / 2.0f;
@@ -53,25 +54,39 @@ void gameInit(Game *game)
 {
   game->currentTile.x = -1;
   game->currentTile.y = -1;
+  game->currentTile.isSet = false;
+  game->hoveredTile.x = -1;
+  game->hoveredTile.y = -1;
+  game->hoveredTile.isSet = false;
 
   game->undoStack = NULL;
   game->redoStack = NULL;
 
   game->undoButton = (Button){0};
   game->undoButton.label = "<";
+  game->undoButton.fontSize = FONT_SIZE_L;
   game->redoButton = (Button){0};
   game->redoButton.label = ">";
+  game->redoButton.fontSize = FONT_SIZE_L;
   game->clearCellButton = (Button){0};
   game->clearCellButton.label = "x";
+  game->clearCellButton.fontSize = FONT_SIZE_L;
   game->newGameButton = (Button){0};
   game->newGameButton.label = "New Game";
+  game->newGameButton.fontSize = FONT_SIZE_L;
   game->gameOverButton = (Button){0};
   game->gameOverButton.label = "New Game";
+  game->gameOverButton.fontSize = FONT_SIZE_L;
+  game->pauseButton = (Button){0};
+  game->pauseButton.label = "";
+  game->pauseButton.fontSize = FONT_SIZE_XS;
+
   game->undoButton.isHovered = false;
   game->redoButton.isHovered = false;
   game->clearCellButton.isHovered = false;
   game->newGameButton.isHovered = false;
   game->gameOverButton.isHovered = false;
+  game->pauseButton.isHovered = false;
 
   game->time.minutes = 0;
   game->time.seconds = 0;
@@ -80,6 +95,7 @@ void gameInit(Game *game)
   game->maximumErrorsAllowed = 3;
   game->isGameOver = false;
   game->isGameCompleted = false;
+  game->isGamePaused = false;
 
   initNumPad(game);
   initRenderLayout(&game->layout);
@@ -197,15 +213,13 @@ bool checkErrors(Game *game)
   bool isAllowed = isAllowedCell(game->board, &game->currentTile);
   if (!isAllowed)
   {
-    game->board[game->currentTile.x][game->currentTile.y].isValid = false;
     game->errorCount++;
-  } else {
-    game->board[game->currentTile.x][game->currentTile.y].isValid = true;
   }
   if (game->errorCount == 3)
   {
     game->isGameOver = true;
   }
+  game->board[game->currentTile.x][game->currentTile.y].isValid = isAllowed;
   return isAllowed;
 }
 
@@ -216,10 +230,7 @@ void checkGameCompleted(Game *game)
     for (int j = 0; j < TILES; j++)
     {
       Tile currentTile = game->board[i][j];
-      if (currentTile.value != currentTile.targetValue)
-      {
-        return;
-      }
+      if (currentTile.value != currentTile.targetValue) return;
     }
   }
   game->isGameCompleted = true;

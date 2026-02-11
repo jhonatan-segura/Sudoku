@@ -10,15 +10,35 @@ void handleInput(Game *game)
 
   if (!game->isGameOver)
   {
-    isNumPadPressed(game, mousePos);
-    isBoardPressed(game, mousePos);
-    handleKeyboard(game);
+    if (!game->isGamePaused)
+    {
+      isNumPadPressed(game, mousePos);
+      isBoardPressed(game, mousePos);
+      handleKeyboardDigits(game);
+    }
+    handlePause(game);
   }
 
-  isActionClicked(game, mousePos);
+  handleMouse(game, mousePos);
 }
 
-void handleKeyboard(Game *game)
+void handlePause(Game *game)
+{
+  if (IsKeyPressed(KEY_SPACE))
+  {
+    game->isGamePaused = !game->isGamePaused;
+  }
+}
+
+void handleUnpauseGame(Game *game)
+{
+  if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+  {
+    game->isGamePaused = !game->isGamePaused;
+  }
+}
+
+void handleKeyboardDigits(Game *game)
 {
   int numbers[ALLOWED_NUMBERS] = {KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE};
 
@@ -96,20 +116,44 @@ bool isButtonHovered(Button *button, Vector2 mousePos)
   return withinUndoButton;
 }
 
+bool isTileHovered(Game *game, int x, int y, Vector2 mousePos)
+{
+  bool withinUndoButton = mousePos.x > game->board[x][y].top_left.x && mousePos.x < game->board[x][y].bottom_right.x &&
+                          mousePos.y > game->board[x][y].top_left.y && mousePos.y < game->board[x][y].bottom_right.y;
+
+  if (withinUndoButton)
+  {
+    game->hoveredTile.x = x;
+    game->hoveredTile.y = y;
+    game->hoveredTile.isSet = true;
+  }
+  else
+  {
+    game->hoveredTile.x = -1;
+    game->hoveredTile.y = -1;
+    game->hoveredTile.isSet = false;
+  }
+  return withinUndoButton;
+}
+
 bool isButtonClicked(Button *button, Vector2 mousePos)
 {
   return isButtonHovered(button, mousePos) && IsMouseButtonReleased(MOUSE_LEFT_BUTTON);
 }
 
-void isActionClicked(Game *game, Vector2 mousePos)
+void handleMouse(Game *game, Vector2 mousePos)
 {
   if (isButtonClicked(&game->gameOverButton, mousePos))
   {
     newGame(game);
   }
 
-  if (game->isGameOver)
+  if (game->isGameOver || game->isGamePaused)
   {
+    if (game->isGamePaused)
+    {
+      handleUnpauseGame(game);
+    }
     return;
   }
 
@@ -132,6 +176,11 @@ void isActionClicked(Game *game, Vector2 mousePos)
   if (isButtonClicked(&game->newGameButton, mousePos))
   {
     newGame(game);
+  }
+
+  if (isButtonClicked(&game->pauseButton, mousePos))
+  {
+    game->isGamePaused = !game->isGamePaused;
   }
 }
 
@@ -186,11 +235,11 @@ void isBoardPressed(Game *game, Vector2 mousePos)
 
   // Early return if left click isn't pressed or there isn't a tile selected
   // Or mouse is hovering out of the board.
-  if (!IsMouseButtonReleased(MOUSE_LEFT_BUTTON) ||
-      (game->currentTile.isSet &&
+  if ((game->currentTile.isSet &&
        (mousePos.x > boardEnd || mousePos.x < PADDING ||
         mousePos.y > boardEnd || mousePos.y < PADDING)))
   {
+    game->hoveredTile.isSet = false;
     return;
   }
 
@@ -198,6 +247,13 @@ void isBoardPressed(Game *game, Vector2 mousePos)
   {
     for (int j = 0; j < TILES; j++)
     {
+      if (!IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+      {
+        bool isHovered = isTileHovered(game, i, j, mousePos);
+        if (isHovered)
+          return;
+      }
+
       bool withinTile =
           mousePos.x > game->board[i][j].top_left.x && mousePos.x < game->board[i][j].bottom_right.x &&
           mousePos.y > game->board[i][j].top_left.y && mousePos.y < game->board[i][j].bottom_right.y;

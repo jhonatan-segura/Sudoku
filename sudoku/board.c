@@ -14,24 +14,21 @@ int randValue(int min, int max)
 bool isValidRow(Tile board[][TILES], Position *currentPos)
 {
   for (int j = 0; j < TILES; j++)
-  {
-    if (board[currentPos->x][j].value == currentPos->tempValue && j != currentPos->y)
-    {
+    // !board[currentPos->x][j].hidden: Triggers the error on the tile if the value is already present as a visible value.
+    // Without this validation the error on the tile is triggered if the value isn't the target value.
+
+    if (board[currentPos->x][j].value == currentPos->tempValue && j != currentPos->y && !board[currentPos->x][j].hidden)
       return false;
-    }
-  }
+
   return true;
 }
 
 bool isValidCol(Tile board[][TILES], Position *currentPos)
 {
   for (int i = 0; i < TILES; i++)
-  {
-    if (board[i][currentPos->y].value == currentPos->tempValue && i != currentPos->x)
-    {
+    if (board[i][currentPos->y].value == currentPos->tempValue && i != currentPos->x && !board[i][currentPos->y].hidden)
       return false;
-    }
-  }
+
   return true;
 }
 
@@ -42,15 +39,13 @@ bool isValidSector(Tile board[][TILES], Position *currentPos)
   int lowH = (currentPos->y / 3) * 3;
   int highH = lowH + 2;
   for (int x = lowV; x <= highV; x++)
-  {
     for (int y = lowH; y <= highH; y++)
-    {
-      if (board[x][y].value == currentPos->tempValue && x != currentPos->x && y != currentPos->y)
-      {
+      if (board[x][y].value == currentPos->tempValue &&
+          x != currentPos->x &&
+          y != currentPos->y &&
+          !board[x][y].hidden)
         return false;
-      }
-    }
-  }
+
   return true;
 }
 

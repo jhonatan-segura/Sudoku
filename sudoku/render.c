@@ -15,14 +15,13 @@ void drawGame(Game *game)
   drawErrors(game);
 
   if (game->isGameOver)
-  {
     drawPopUp(game, "Game Over", "You've made 3 mistakes!", "Try Again");
-  }
 
   if (game->isGameCompleted)
-  {
     drawPopUp(game, "Sudoku Solved!", "You've completed the sudoku!", "New Game");
-  }
+
+  if (game->isGamePaused)
+    drawPauseScreen();
 }
 
 void drawBoardGrid(Game *game, float tileSize)
@@ -40,8 +39,8 @@ void drawBoardGrid(Game *game, float tileSize)
 
     if (i % 3 == 0)
     {
-      DrawLineEx(start_hor, end_hor, LINE_THICKNESS, BLACK);
-      DrawLineEx(start_ver, end_ver, LINE_THICKNESS, BLACK);
+      DrawLineEx(start_hor, end_hor, LINE_THICKNESS_M, BLACK);
+      DrawLineEx(start_ver, end_ver, LINE_THICKNESS_M, BLACK);
     }
   }
 }
@@ -64,22 +63,19 @@ void drawBoardDigits(Game *game, float tileSize, float halfTileSize)
 
       if (currentTile->value == selectedCell.value && !selectedCell.hidden && !currentTile->hidden)
       {
-        Rectangle rect = {
-            .x = x1,
-            .y = y1,
-            .width = tileSize,
-            .height = tileSize};
-        DrawRectangleLinesEx(rect, 3.0, (Color){121, 172, 224, 255});
+        drawTileOutline(x1, y1, tileSize, LIGHT_BLUE);
+      }
+
+      if (game->hoveredTile.isSet && game->hoveredTile.x == i && game->hoveredTile.y == j)
+      {
+        Color tileInnerColor = GRAY;
+        drawTileOutline(x1, y1, tileSize, tileInnerColor);
       }
 
       if (game->currentTile.x == i && game->currentTile.y == j)
       {
-        Rectangle rect = {
-            .x = x1,
-            .y = y1,
-            .width = tileSize,
-            .height = tileSize};
-        DrawRectangleLinesEx(rect, 3.0, BLUE);
+        Color tileInnerColor = currentTile->isValid ? BLUE : RED;
+        drawTileOutline(x1, y1, tileSize, tileInnerColor);
       }
 
       if (currentTile->hidden)
@@ -91,16 +87,27 @@ void drawBoardDigits(Game *game, float tileSize, float halfTileSize)
       int y_coord = y1 + TEXT_PADDING;
       const char *cellText = TextFormat("%i", currentTile->value);
       Color textColor = BLACK;
-      if (currentTile->fixed) {
+
+      if (currentTile->fixed)
         textColor = BLACK;
-      } else if (!currentTile->isValid) {
+      else if (!currentTile->isValid)
         textColor = RED;
-      } else {
+      else
         textColor = GRAY;
-      }
-      DrawText(cellText, x_coord, y_coord, 28, textColor);
+
+      DrawText(cellText, x_coord, y_coord, FONT_SIZE_M, textColor);
     }
   }
+}
+
+void drawTileOutline(int x, int y, int tileSize, Color color)
+{
+  Rectangle rect = {
+      .x = x,
+      .y = y,
+      .width = tileSize,
+      .height = tileSize};
+  DrawRectangleLinesEx(rect, LINE_THICKNESS_M, color);
 }
 
 void drawBoard(Game *game)
@@ -130,8 +137,8 @@ void drawButton(Vec2 buttonPosition, Vector2 buttonSize, Vec2 textPosition, Butt
   button->color = button->isHovered ? LIGHTGRAY : WHITE;
   DrawRectangleV(newGamePos, newGameSize, button->color);
 
-  DrawRectangleLinesEx(newGameRect, 2.0, BLACK);
-  DrawText(button->label, newGameX + textPosition.x, newGameY + textPosition.y, 35, BLACK);
+  DrawRectangleLinesEx(newGameRect, LINE_THICKNESS_S, BLACK);
+  DrawText(button->label, newGameX + textPosition.x, newGameY + textPosition.y, button->fontSize, BLACK);
 }
 
 void drawActionButtons(Game *game)
@@ -139,6 +146,7 @@ void drawActionButtons(Game *game)
   Vector2 numpadButtonSize = game->layout.numpadButtonSize;
   Vector2 actionButtonSize = game->layout.actionButtonSize;
   Vector2 newGameButtonSize = game->layout.newGameButtonSize;
+  Vector2 pauseButtonSize = game->layout.pauseButtonSize;
   Vector2 hudSize = game->layout.hudSize;
   float halfActionSize = game->layout.halfActionButtonSize;
 
@@ -155,6 +163,9 @@ void drawActionButtons(Game *game)
   drawButton((Vec2){clearX, clearY}, actionButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->clearCellButton);
 
   drawButton((Vec2){hudSize.x, PADDING}, newGameButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->newGameButton);
+
+  drawButton((Vec2){PADDING + 100, 8}, pauseButtonSize, (Vec2){7, 5}, &game->pauseButton);
+  drawPauseBars(4, 15, 5, PADDING + 111, 13, BLACK);
 }
 
 void drawNumPad(Game *game)
@@ -178,18 +189,13 @@ void drawNumPad(Game *game)
       currentButton->top_left = (Vector2){x1, y1};
       currentButton->bottom_right = (Vector2){x2, y2};
       currentButton->value = numpad_count;
+
       if (currentButton->isCompleted)
-      {
         currentButton->color = GREEN;
-      }
       else if (currentButton->isHovered)
-      {
         currentButton->color = LIGHTGRAY;
-      }
       else
-      {
         currentButton->color = WHITE;
-      }
 
       Rectangle rect = {
           .x = x1,
@@ -204,14 +210,14 @@ void drawNumPad(Game *game)
       const char *cellText = TextFormat("%i", numpad_count++);
       int num_x = x1 + halfNumTileSize - 5;
       int num_y = y1 + halfNumTileSize - 14;
-      DrawText(cellText, num_x, num_y, 28, BLACK);
+      DrawText(cellText, num_x, num_y, FONT_SIZE_M, BLACK);
     }
   }
 }
 
 void drawTimer(Game *game)
 {
-  if (!game->isGameOver && !game->isGameCompleted)
+  if (!game->isGameOver && !game->isGameCompleted && !game->isGamePaused)
   {
     now = GetTime();
     if (now - prevTime >= 1.0f)
@@ -227,23 +233,22 @@ void drawTimer(Game *game)
   }
 
   const char *time = TextFormat("%02d:%02d", game->time.minutes, game->time.seconds);
-  DrawText(time, PADDING, 10, 28, BLACK);
+  DrawText(time, PADDING, 10, FONT_SIZE_M, BLACK);
 }
 
 void drawErrors(Game *game)
 {
   const char *errorText = TextFormat("Mistakes: %d/%d", game->errorCount, game->maximumErrorsAllowed);
   const int textXPos = MeasureText(errorText, 28);
-  DrawText(errorText, game->layout.boardEnd - textXPos, 10, 28, BLACK);
+  DrawText(errorText, game->layout.boardEnd - textXPos, 10, FONT_SIZE_M, BLACK);
 }
 
 void drawPopUp(Game *game, char *title, char *body, char *buttonText)
 {
   const int screenWidth = GetScreenWidth();
   const int screenHeight = GetScreenHeight();
-  Color translucidBackground = (Color){0, 0, 0, 150};
 
-  DrawRectangle(0, 0, screenWidth, screenHeight, translucidBackground);
+  DrawRectangle(0, 0, screenWidth, screenHeight, TRANSLUCID_BACKGROUND);
 
   const int popUpWidth = 420;
   const int popUpHeigth = 250;
@@ -255,7 +260,7 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText)
       popUpWidth,
       popUpHeigth};
   DrawRectangleRounded(backgroundPosition, 0.1, 30, RAYWHITE);
-  DrawRectangleRoundedLinesEx(backgroundPosition, 0.1, 30, LINE_THICKNESS, BLACK);
+  DrawRectangleRoundedLinesEx(backgroundPosition, 0.1, 30, LINE_THICKNESS_M, BLACK);
 
   // Draw button
   const int buttonVerticalDisplacement = 70;
@@ -267,24 +272,67 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText)
       game->gameOverButton.top_left.x,
       game->gameOverButton.top_left.y,
       buttonWidth,
-      buttonHeight
-  };
-  game->gameOverButton.top_left = (Vector2) {buttonX, buttonY};
-  game->gameOverButton.bottom_right = (Vector2) {buttonWidth + buttonX, buttonHeight + buttonY};
+      buttonHeight};
+  game->gameOverButton.top_left = (Vector2){buttonX, buttonY};
+  game->gameOverButton.bottom_right = (Vector2){buttonWidth + buttonX, buttonHeight + buttonY};
   Color buttonColor = game->gameOverButton.isHovered ? LIGHTGRAY : RAYWHITE;
   DrawRectangleRounded(buttonPosition, 0.7, 30, buttonColor);
-  DrawRectangleRoundedLinesEx(buttonPosition, 0.7, 30, LINE_THICKNESS, BLACK);
+  DrawRectangleRoundedLinesEx(buttonPosition, 0.7, 30, LINE_THICKNESS_M, BLACK);
 
-  const int titleX = getTextPosition(screenWidth, title);
+  const int titleX = getTextPosition(screenWidth, title, FONT_SIZE_M);
   const int titleY = (screenHeight / 2) - 90;
 
-  const int bodyX = getTextPosition(screenWidth, body);
+  const int bodyX = getTextPosition(screenWidth, body, FONT_SIZE_S);
   const int bodyY = (screenHeight / 2) - 10;
 
-  const int buttonTextX = getTextPosition(screenWidth, buttonText);
+  const int buttonTextX = getTextPosition(screenWidth, buttonText, FONT_SIZE_S);
   const int buttonTextY = game->gameOverButton.top_left.y;
 
-  DrawText(title, titleX, titleY, 28, BLACK);
-  DrawText(body, bodyX, bodyY, 26, BLACK);
-  DrawText(buttonText, buttonTextX, buttonTextY, 26, BLACK);
+  DrawText(title, titleX, titleY, FONT_SIZE_M, BLACK);
+  DrawText(body, bodyX, bodyY, FONT_SIZE_S, BLACK);
+  DrawText(buttonText, buttonTextX, buttonTextY, FONT_SIZE_S, BLACK);
+}
+
+void drawPauseScreen()
+{
+  const int screenWidth = GetScreenWidth();
+  const int screenHeight = GetScreenHeight();
+
+  DrawRectangle(0, 0, screenWidth, screenHeight, TRANSLUCID_BACKGROUND);
+
+  drawPauseBars(40, 150, 30,
+                (screenWidth / 2) - (40 / 2),
+                (screenHeight / 2) - (150 / 2),
+                RAYWHITE);
+
+  const int buttonTextX = getTextPosition(screenWidth, "Game Paused", FONT_SIZE_XL);
+  const int buttonTextY = 150;
+
+  DrawText("Game Paused", buttonTextX, buttonTextY, FONT_SIZE_XL, RAYWHITE);
+}
+
+void drawPauseBars(int width, int height, int gap, int xPos, int yPos, Color color)
+{
+  const int barWidth = width;
+  const int barHeight = height;
+  const int dividingGap = gap;
+  const int leftRectX = xPos - dividingGap;
+  const int leftRectY = yPos;
+  Vector2 leftRectPosition = (Vector2){
+      leftRectX,
+      leftRectY};
+  Vector2 leftRectSize = (Vector2){
+      barWidth,
+      barHeight};
+  DrawRectangleV(leftRectPosition, leftRectSize, color);
+
+  const int rightRectX = xPos + dividingGap;
+  const int rightRectY = yPos;
+  Vector2 rightRectPosition = (Vector2){
+      rightRectX,
+      rightRectY};
+  Vector2 rightRectSize = (Vector2){
+      barWidth,
+      barHeight};
+  DrawRectangleV(rightRectPosition, rightRectSize, color);
 }

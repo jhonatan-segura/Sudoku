@@ -16,6 +16,7 @@ typedef struct
   Color color;
   Vector2 top_left;
   Vector2 bottom_right;
+  int fontSize;
   char *label;
 } Button;
 
@@ -39,10 +40,12 @@ typedef struct
   int minutes;
   int seconds;
 } Time;
+
 typedef struct
 {
   Tile board[TILES][TILES];
   Position currentTile;
+  Position hoveredTile;
   Stack *undoStack;
   Stack *redoStack;
   NumPadButton numPad[NUM_PAD_TILES][NUM_PAD_TILES];
@@ -51,6 +54,7 @@ typedef struct
   Button clearCellButton;
   Button newGameButton;
   Button gameOverButton;
+  Button pauseButton;
   RenderLayout layout;
   Time time;
   int errorCount;
@@ -58,6 +62,7 @@ typedef struct
   int maximumErrorsAllowed;
   bool isGameOver;
   bool isGameCompleted;
+  bool isGamePaused;
 } Game;
 
 void initRandomSeed();

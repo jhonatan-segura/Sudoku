@@ -4,6 +4,8 @@
 #include "game.h"
 #include "input.h"
 
+// TODO: Add isValid state when pushing or removing elements
+// TODO: Add isCellCompleted state when pushing or removing elements
 int main(void)
 {
   Game *game = calloc(1, sizeof(Game));

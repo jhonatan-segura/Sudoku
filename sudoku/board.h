@@ -10,7 +10,6 @@
 #define PADDING 40
 #define HUD_GAP 20
 #define TEXT_PADDING 18
-#define LINE_THICKNESS 3.0
 
 typedef struct
 {
