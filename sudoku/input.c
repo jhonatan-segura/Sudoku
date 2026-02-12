@@ -58,19 +58,16 @@ void handleKeyboardDigits(Game *game)
         return;
       }
 
-      push(&game->undoStack, (Action){
-                                 .newValue = value,
-                                 .oldValue = selectedTile->value,
-                                 .newHidden = false,
-                                 .oldHidden = selectedTile->hidden,
-                                 .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
+      int previousValue = selectedTile->value;
       bool previousIsHidden = selectedTile->hidden;
+      bool previousIsValid = selectedTile->isValid;
+
       selectedTile->value = value;
       game->currentTile.tempValue = value;
       selectedTile->hidden = false;
 
-      game->numPad[numPadPrevPos.x][numPadPrevPos.y].isCompleted = isDigitCompleted(game, game->numPad[numPadPrevPos.x][numPadPrevPos.y].value);
-      game->numPad[numPadCurrPos.x][numPadCurrPos.y].isCompleted = isDigitCompleted(game, game->numPad[numPadCurrPos.x][numPadCurrPos.y].value);
+      isNumPadValueCompleted(game, game->numPad[numPadPrevPos.x][numPadPrevPos.y].value);
+      isNumPadValueCompleted(game, game->numPad[numPadCurrPos.x][numPadCurrPos.y].value);
 
       // Check errors
       bool isValid = checkErrors(game);
@@ -82,6 +79,16 @@ void handleKeyboardDigits(Game *game)
       {
         checkGameCompleted(game);
       }
+
+      push(&game->undoStack,
+           (Action){
+               .newValue = value,
+               .oldValue = previousValue,
+               .newHidden = false,
+               .oldHidden = previousIsHidden,
+               .oldIsValid = previousIsValid,
+               .newIsValid = selectedTile->isValid,
+               .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
     }
   }
 }
@@ -170,7 +177,7 @@ void handleMouse(Game *game, Vector2 mousePos)
   if (isButtonClicked(&game->clearCellButton, mousePos))
   {
     clearCell(game);
-    setSelectedValueCompleted(game);
+    clearNumPadValueCompleted(game);
   }
 
   if (isButtonClicked(&game->newGameButton, mousePos))
@@ -199,20 +206,16 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
           IsMouseButtonReleased(MOUSE_LEFT_BUTTON) &&
           !game->numPad[i][j].isCompleted)
       {
-        push(&game->undoStack, (Action){
-                                   .newValue = game->numPad[i][j].value,
-                                   .oldValue = selectedTile->value,
-                                   .newHidden = false,
-                                   .oldHidden = selectedTile->hidden,
-                                   .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
         int previousValue = selectedTile->value;
         bool previousIsHidden = selectedTile->hidden;
+        bool previousIsValid = selectedTile->isValid;
+
         selectedTile->value = game->numPad[i][j].value;
         game->currentTile.tempValue = game->numPad[i][j].value;
         selectedTile->hidden = false;
 
         setPreviousValueNotCompleted(game, previousValue);
-        game->numPad[i][j].isCompleted = isDigitCompleted(game, game->numPad[i][j].value);
+        isNumPadValueCompleted(game, game->numPad[i][j].value);
 
         // Check errors
         bool isValid = checkErrors(game);
@@ -224,6 +227,16 @@ void isNumPadPressed(Game *game, Vector2 mousePos)
         {
           checkGameCompleted(game);
         }
+
+        push(&game->undoStack,
+             (Action){
+                 .newValue = game->numPad[i][j].value,
+                 .oldValue = previousValue,
+                 .newHidden = false,
+                 .oldHidden = previousIsHidden,
+                 .oldIsValid = previousIsValid,
+                 .newIsValid = selectedTile->isValid,
+                 .position = (Vec2){(float)game->currentTile.x, (float)game->currentTile.y}});
       }
     }
   }

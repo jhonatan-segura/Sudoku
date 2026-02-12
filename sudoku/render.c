@@ -165,7 +165,7 @@ void drawActionButtons(Game *game)
   drawButton((Vec2){hudSize.x, PADDING}, newGameButtonSize, (Vec2){halfActionSize - 5, halfActionSize - 14}, &game->newGameButton);
 
   drawButton((Vec2){PADDING + 100, 8}, pauseButtonSize, (Vec2){7, 5}, &game->pauseButton);
-  drawPauseBars(4, 15, 5, PADDING + 111, 13, BLACK);
+  drawPauseBars(3, 15, 5, PADDING + 112, 14, BLACK);
 }
 
 void drawNumPad(Game *game)

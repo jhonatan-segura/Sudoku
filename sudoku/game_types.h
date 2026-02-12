@@ -9,6 +9,8 @@ typedef struct
   int oldValue;
   bool newHidden;
   bool oldHidden;
+  bool newIsValid;
+  bool oldIsValid;
   Vec2 position;
 } Action;
 
