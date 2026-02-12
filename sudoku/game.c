@@ -132,18 +132,19 @@ void moveStacks(Game *game, Stack **stack1, Stack **stack2, PossibleMoves move)
   case UNDO:
     game->board[(int)action.position.x][(int)action.position.y].value = action.oldValue;
     game->board[(int)action.position.x][(int)action.position.y].hidden = action.oldHidden;
-    game->currentTile.x = action.position.x;
-    game->currentTile.y = action.position.y;
-    game->currentTile.isSet = true;
+    game->board[(int)action.position.x][(int)action.position.y].isValid = action.oldIsValid;
     break;
   case REDO:
     game->board[(int)action.position.x][(int)action.position.y].value = action.newValue;
     game->board[(int)action.position.x][(int)action.position.y].hidden = action.newHidden;
-    game->currentTile.x = action.position.x;
-    game->currentTile.y = action.position.y;
-    game->currentTile.isSet = true;
+    game->board[(int)action.position.x][(int)action.position.y].isValid = action.newIsValid;
     break;
   }
+  isNumPadValueCompleted(game, action.oldValue);
+  isNumPadValueCompleted(game, action.newValue);
+  game->currentTile.x = action.position.x;
+  game->currentTile.y = action.position.y;
+  game->currentTile.isSet = true;
 
   push(stack2, action);
 }
@@ -183,16 +184,16 @@ void setPreviousValueNotCompleted(Game *game, int previousValue)
   game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = false;
 }
 
-void setSelectedValueCompleted(Game *game)
+void clearNumPadValueCompleted(Game *game)
 {
   int currentValue = game->board[game->currentTile.x][game->currentTile.y].value;
-  Vec2i numPadPosition = getNumPadPosition(currentValue);
-
-  game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = isDigitCompleted(game, currentValue);
+  isNumPadValueCompleted(game, currentValue);
 }
 
-bool isDigitCompleted(Game *game, int digit)
+void isNumPadValueCompleted(Game *game, int digit)
 {
+  Vec2i numPadPosition = getNumPadPosition(digit);
+
   for (int i = 0; i < TILES; i++)
   {
     for (int j = 0; j < TILES; j++)
@@ -201,11 +202,12 @@ bool isDigitCompleted(Game *game, int digit)
       if ((currentTile.value != digit && currentTile.targetValue == digit) ||
           (currentTile.hidden && currentTile.targetValue == digit))
       {
-        return false;
+        game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = false;
+        return;
       }
     }
   }
-  return true;
+  game->numPad[numPadPosition.x][numPadPosition.y].isCompleted = true;
 }
 
 bool checkErrors(Game *game)
@@ -230,7 +232,8 @@ void checkGameCompleted(Game *game)
     for (int j = 0; j < TILES; j++)
     {
       Tile currentTile = game->board[i][j];
-      if (currentTile.value != currentTile.targetValue) return;
+      if (currentTile.value != currentTile.targetValue)
+        return;
     }
   }
   game->isGameCompleted = true;
