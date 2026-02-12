@@ -215,7 +215,7 @@ bool checkErrors(Game *game)
   {
     game->errorCount++;
   }
-  if (game->errorCount == 3)
+  if (game->errorCount == 4)
   {
     game->isGameOver = true;
   }
