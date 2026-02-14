@@ -1,5 +1,6 @@
 #include "render.h"
 #include "game.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -22,6 +23,9 @@ void drawGame(Game *game)
 
   if (game->isGamePaused)
     drawPauseScreen();
+
+  if (game->difficultyModeButton.isEnabled)
+    drawDifficultyPopUp(game);
 }
 
 void drawBoardGrid(Game *game, float tileSize)
@@ -93,7 +97,7 @@ void drawBoardDigits(Game *game, float tileSize, float halfTileSize)
       else if (!currentTile->isValid)
         textColor = RED;
       else
-        textColor = GRAY;
+        textColor = BLUE;
 
       DrawText(cellText, x_coord, y_coord, FONT_SIZE_M, textColor);
     }
@@ -147,6 +151,7 @@ void drawActionButtons(Game *game)
   Vector2 actionButtonSize = game->layout.actionButtonSize;
   Vector2 newGameButtonSize = game->layout.newGameButtonSize;
   Vector2 pauseButtonSize = game->layout.pauseButtonSize;
+  Vector2 difficultyButtonSize = game->layout.difficultyButtonSize;
   Vector2 hudSize = game->layout.hudSize;
   float halfActionSize = game->layout.halfActionButtonSize;
 
@@ -166,6 +171,8 @@ void drawActionButtons(Game *game)
 
   drawButton((Vec2){PADDING + 100, 8}, pauseButtonSize, (Vec2){7, 5}, &game->pauseButton);
   drawPauseBars(3, 15, 5, PADDING + 112, 14, BLACK);
+
+  drawButton((Vec2){PADDING + 200, 8}, difficultyButtonSize, (Vec2){7, 5}, &game->difficultyModeButton);
 }
 
 void drawNumPad(Game *game)
@@ -248,19 +255,7 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText)
   const int screenWidth = GetScreenWidth();
   const int screenHeight = GetScreenHeight();
 
-  DrawRectangle(0, 0, screenWidth, screenHeight, TRANSLUCID_BACKGROUND);
-
-  const int popUpWidth = 420;
-  const int popUpHeigth = 250;
-  const int backgroundX = (screenWidth / 2) - (popUpWidth / 2);
-  const int backgroundY = (screenHeight / 2) - (popUpHeigth / 2);
-  Rectangle backgroundPosition = (Rectangle){
-      backgroundX,
-      backgroundY,
-      popUpWidth,
-      popUpHeigth};
-  DrawRectangleRounded(backgroundPosition, 0.1, 30, RAYWHITE);
-  DrawRectangleRoundedLinesEx(backgroundPosition, 0.1, 30, LINE_THICKNESS_M, BLACK);
+  drawBackgroundSkeleton(screenWidth, screenHeight);
 
   // Draw button
   const int buttonVerticalDisplacement = 70;
@@ -291,6 +286,44 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText)
   DrawText(title, titleX, titleY, FONT_SIZE_M, BLACK);
   DrawText(body, bodyX, bodyY, FONT_SIZE_S, BLACK);
   DrawText(buttonText, buttonTextX, buttonTextY, FONT_SIZE_S, BLACK);
+}
+
+void drawDifficultyPopUp(Game *game)
+{
+  const int screenWidth = GetScreenWidth();
+  const int screenHeight = GetScreenHeight();
+
+  drawBackgroundSkeleton(screenWidth, screenHeight);
+
+  const int buttonTitleX = getTextPosition(screenWidth, "Choose the game difficulty:", FONT_SIZE_S);
+  const int buttonTitleY = (screenHeight / 2) - 100;
+
+  DrawText("Choose the game difficulty:", buttonTitleX, buttonTitleY, FONT_SIZE_S, BLACK);
+
+  // Draw buttons
+  for (int i = 0; i < DIFFICULTIES; i++)
+  {
+    const int buttonVerticalDisplacement = 40 * i;
+    const int buttonWidth = 200;
+    const int buttonHeight = 30;
+    const int buttonX = (screenWidth / 2) - (buttonWidth / 2);
+    const int buttonY = (screenHeight / 2) + buttonVerticalDisplacement;
+    game->difficultyButtons[i].top_left = (Vector2){buttonX, buttonY};
+    Rectangle buttonPosition = (Rectangle){
+        game->difficultyButtons[i].top_left.x,
+        game->difficultyButtons[i].top_left.y,
+        buttonWidth,
+        buttonHeight};
+    game->difficultyButtons[i].bottom_right = (Vector2){buttonWidth + buttonX, buttonHeight + buttonY};
+    Color buttonColor = game->difficultyButtons[i].isHovered ? LIGHTGRAY : RAYWHITE;
+    DrawRectangleRounded(buttonPosition, 0.7, 30, buttonColor);
+    DrawRectangleRoundedLinesEx(buttonPosition, 0.7, 30, LINE_THICKNESS_M, BLACK);
+
+    const int buttonEasyX = getTextPosition(screenWidth, game->difficulties[i].text, FONT_SIZE_S);
+    const int buttonEasyY = (screenHeight / 2) + buttonVerticalDisplacement;
+
+    DrawText(game->difficulties[i].text, buttonEasyX, buttonEasyY, FONT_SIZE_S, BLACK);
+  }
 }
 
 void drawPauseScreen()
@@ -335,4 +368,21 @@ void drawPauseBars(int width, int height, int gap, int xPos, int yPos, Color col
       barWidth,
       barHeight};
   DrawRectangleV(rightRectPosition, rightRectSize, color);
+}
+
+void drawBackgroundSkeleton(int screenWidth, int screenHeight)
+{
+  DrawRectangle(0, 0, screenWidth, screenHeight, TRANSLUCID_BACKGROUND);
+
+  const int popUpWidth = 420;
+  const int popUpHeigth = 250;
+  const int backgroundX = (screenWidth / 2) - (popUpWidth / 2);
+  const int backgroundY = (screenHeight / 2) - (popUpHeigth / 2);
+  Rectangle backgroundPosition = (Rectangle){
+      backgroundX,
+      backgroundY,
+      popUpWidth,
+      popUpHeigth};
+  DrawRectangleRounded(backgroundPosition, 0.1, 30, RAYWHITE);
+  DrawRectangleRoundedLinesEx(backgroundPosition, 0.1, 30, LINE_THICKNESS_M, BLACK);
 }

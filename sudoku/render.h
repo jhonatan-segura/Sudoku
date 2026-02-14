@@ -21,3 +21,5 @@ void drawPopUp(Game *game, char *title, char *body, char *buttonText);
 void drawPauseScreen();
 void drawPauseBars(int width, int height, int gap, int xPos, int yPos, Color color);
 void drawTileOutline(int x, int y, int tileSize, Color color);
+void drawDifficultyPopUp(Game *game);
+void drawBackgroundSkeleton(int screenWidth, int screenHeight);

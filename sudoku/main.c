@@ -9,7 +9,7 @@
 int main(void)
 {
   Game *game = calloc(1, sizeof(Game));
-  gameInit(game);
+  gameInit(game, EASY);
 
   InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Sudoku");
 

@@ -1,7 +1,31 @@
 #pragma once
 
-#include "utils.h"
 #include <stdbool.h>
+
+typedef struct
+{
+  float x;
+  float y;
+} Vec2;
+
+typedef struct
+{
+  int x;
+  int y;
+} Vec2i;
+
+typedef enum
+{
+  EASY = 0,
+  MEDIUM = 1,
+  HARD = 2
+} DifficultyIndex;
+
+typedef struct
+{
+  int tilesToHide;
+  char *text;
+} Difficulty;
 
 typedef struct
 {
