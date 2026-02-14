@@ -13,3 +13,4 @@ void handleUnpauseGame(Game *game);
 void isNumPadPressed(Game *game, Vector2 mousePos);
 void handleMouse(Game *game, Vector2 mousePos);
 bool isTileHovered(Game *game, int x, int y, Vector2 mousePos);
+void handleDifficultyChange(Game *game, Vector2 mousePos);

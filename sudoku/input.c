@@ -8,6 +8,11 @@ void handleInput(Game *game)
 {
   Vector2 mousePos = GetMousePosition();
 
+  if (game->difficultyModeButton.isEnabled) {
+    handleDifficultyChange(game, mousePos);
+    return;
+  }
+
   if (!game->isGameOver)
   {
     if (!game->isGamePaused)
@@ -152,7 +157,7 @@ void handleMouse(Game *game, Vector2 mousePos)
 {
   if (isButtonClicked(&game->gameOverButton, mousePos))
   {
-    newGame(game);
+    newGame(game, game->difficultyIndex);
   }
 
   if (game->isGameOver || game->isGamePaused)
@@ -182,12 +187,28 @@ void handleMouse(Game *game, Vector2 mousePos)
 
   if (isButtonClicked(&game->newGameButton, mousePos))
   {
-    newGame(game);
+    newGame(game, game->difficultyIndex);
   }
 
   if (isButtonClicked(&game->pauseButton, mousePos))
   {
     game->isGamePaused = !game->isGamePaused;
+  }
+
+  if (isButtonClicked(&game->difficultyModeButton, mousePos))
+  {
+    game->difficultyModeButton.isEnabled = true;
+  }
+}
+
+void handleDifficultyChange(Game *game, Vector2 mousePos)
+{
+  for (int i = 0; i < DIFFICULTIES; i++)
+  {
+    if (isButtonClicked(&game->difficultyButtons[i], mousePos))
+    {
+      newGame(game, i);
+    }
   }
 }
 

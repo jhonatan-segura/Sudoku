@@ -32,6 +32,7 @@ void initRenderLayout(RenderLayout *layout)
   layout->actionButtonSize = (Vector2){actionSize, actionSize};
   layout->newGameButtonSize = (Vector2){newGameSize, numPadSize - 30};
   layout->pauseButtonSize = (Vector2){28, 28};
+  layout->difficultyButtonSize = (Vector2){100, 30};
 
   layout->tileSize = (layout->boardEnd - PADDING) / (float)TILES;
   layout->halfTileSize = layout->tileSize / 2.0f;
@@ -50,8 +51,18 @@ void initNumPad(Game *game)
   }
 }
 
-void gameInit(Game *game)
+void gameInit(Game *game, DifficultyIndex difficultyIndex)
 {
+  initDifficulty(game);
+
+  game->errorCount = 0;
+  game->maximumErrorsAllowed = 3;
+  game->isGameOver = false;
+  game->isGameCompleted = false;
+  game->isGamePaused = false;
+  game->difficultyIndex = difficultyIndex;
+  game->visibleTilesCount = TOTAL_TILES - game->difficulties[game->difficultyIndex].tilesToHide;
+
   game->currentTile.x = -1;
   game->currentTile.y = -1;
   game->currentTile.isSet = false;
@@ -80,6 +91,10 @@ void gameInit(Game *game)
   game->pauseButton = (Button){0};
   game->pauseButton.label = "";
   game->pauseButton.fontSize = FONT_SIZE_XS;
+  game->difficultyModeButton = (Button){0};
+  game->difficultyModeButton.label = game->difficulties[game->difficultyIndex].text;
+  game->difficultyModeButton.fontSize = FONT_SIZE_XS;
+  game->difficultyModeButton.isEnabled = false;
 
   game->undoButton.isHovered = false;
   game->redoButton.isHovered = false;
@@ -87,15 +102,10 @@ void gameInit(Game *game)
   game->newGameButton.isHovered = false;
   game->gameOverButton.isHovered = false;
   game->pauseButton.isHovered = false;
+  game->difficultyModeButton.isHovered = false;
 
   game->time.minutes = 0;
   game->time.seconds = 0;
-
-  game->errorCount = 0;
-  game->maximumErrorsAllowed = 3;
-  game->isGameOver = false;
-  game->isGameCompleted = false;
-  game->isGamePaused = false;
 
   initNumPad(game);
   initRenderLayout(&game->layout);
@@ -107,9 +117,49 @@ void generateNewGame(Game *game)
   initRandomSeed();
   initBoard(game->board);
   solver(game->board);
-  hideTiles(game->board, EASY);
-  game->visibleTilesCount = TOTAL_TILES - EASY;
+  hideTiles(game->board, game->difficulties[game->difficultyIndex].tilesToHide);
   printBoard(game->board);
+}
+
+void initDifficultyButtons(Game *game)
+{
+  game->difficultyButtons[0] = (Button){
+      .isHovered = false,
+      .isEnabled = false,
+      .color = RAYWHITE,
+      .top_left = {0.0, 0.0},
+      .bottom_right = {0.0, 0.0},
+      .fontSize = FONT_SIZE_S,
+      .label = "Easy"};
+  game->difficultyButtons[1] = (Button){
+      .isHovered = false,
+      .isEnabled = false,
+      .color = RAYWHITE,
+      .top_left = {0.0, 0.0},
+      .bottom_right = {0.0, 0.0},
+      .fontSize = FONT_SIZE_S,
+      .label = "Medium"};
+  game->difficultyButtons[2] = (Button){
+      .isHovered = false,
+      .isEnabled = false,
+      .color = RAYWHITE,
+      .top_left = {0.0, 0.0},
+      .bottom_right = {0.0, 0.0},
+      .fontSize = FONT_SIZE_S,
+      .label = "Hard"};
+}
+
+void initDifficulty(Game *game)
+{
+  game->difficulties[0] = (Difficulty){
+      .text = "Easy",
+      .tilesToHide = 35};
+  game->difficulties[1] = (Difficulty){
+      .text = "Medium",
+      .tilesToHide = 45};
+  game->difficulties[2] = (Difficulty){
+      .text = "Hard",
+      .tilesToHide = 55};
 }
 
 void gameUnload(Game *game)
@@ -140,6 +190,7 @@ void moveStacks(Game *game, Stack **stack1, Stack **stack2, PossibleMoves move)
     game->board[(int)action.position.x][(int)action.position.y].isValid = action.newIsValid;
     break;
   }
+  // Check if previous or recent num pad values are completed.
   isNumPadValueCompleted(game, action.oldValue);
   isNumPadValueCompleted(game, action.newValue);
   game->currentTile.x = action.position.x;
@@ -169,9 +220,9 @@ void clearCell(Game *game)
   }
 }
 
-void newGame(Game *game)
+void newGame(Game *game, DifficultyIndex difficultyIndex)
 {
-  gameInit(game);
+  gameInit(game, difficultyIndex);
 
   freeStack(game->undoStack);
   freeStack(game->redoStack);

@@ -1,5 +1,6 @@
 #include "utils.h"
 #include "raylib.h"
+#include "game_types.h"
 
 Vec2i getNumPadPosition(int value)
 {

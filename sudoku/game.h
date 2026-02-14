@@ -6,13 +6,12 @@
 #include "game_types.h"
 
 #define TOTAL_TILES 81
-#define EASY 40
-#define MEDIUM 50
-#define HARD 60
+#define DIFFICULTIES 3
 
 typedef struct
 {
   bool isHovered;
+  bool isEnabled;
   Color color;
   Vector2 top_left;
   Vector2 bottom_right;
@@ -55,6 +54,8 @@ typedef struct
   Button newGameButton;
   Button gameOverButton;
   Button pauseButton;
+  Button difficultyModeButton;
+  Button difficultyButtons[DIFFICULTIES];
   RenderLayout layout;
   Time time;
   int errorCount;
@@ -63,17 +64,20 @@ typedef struct
   bool isGameOver;
   bool isGameCompleted;
   bool isGamePaused;
+  int difficultyIndex;
+  Difficulty difficulties[DIFFICULTIES];
 } Game;
 
+void initDifficulty(Game *game);
 void initRandomSeed();
 void generateNewGame(Game *game);
-void gameInit(Game *game);
+void gameInit(Game *game, DifficultyIndex difficultyIndex);
 void gameUnload(Game *game);
 void moveStacks(Game *game, Stack **stack1, Stack **stack2, PossibleMoves move);
 void undo(Game *game, Stack **undo_stack, Stack **redo_stack);
 void redo(Game *game, Stack **undo_stack, Stack **redo_stack);
 void clearCell(Game *game);
-void newGame(Game *game);
+void newGame(Game *game, DifficultyIndex difficultyIndex);
 void setPreviousValueNotCompleted(Game *game, int previousValue);
 void clearNumPadValueCompleted(Game *game);
 void isNumPadValueCompleted(Game *game, int digit);
